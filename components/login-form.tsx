@@ -327,16 +327,12 @@ export function LoginForm({
                   )}
                   <Button
                     type="submit"
-                    className="w-full py-2 px-4 bg-primary text-white rounded hover:bg-primary/90 disabled:opacity-50"
+                
                     disabled={loading || !email || !password}
                   >
                     {loading ? "Signing in..." : "Sign In"}
                   </Button>
-                  {error && (
-                    <div className="text-red-500 text-sm text-center mt-2">
-                      {error}
-                    </div>
-                  )}
+                
                 </div>
                 <div className="text-center text-sm">
                   Don't have an account?{" "}

@@ -123,7 +123,6 @@ export function SignUpForm({
 
               <Button
                 type="submit"
-                className="w-full py-2 px-4 bg-primary text-white rounded hover:bg-primary/90 disabled:opacity-50"
                 disabled={loading}
               >
                 {loading ? "Signing up..." : "Sign Up"}
@@ -161,7 +160,6 @@ export function SignUpForm({
                 </svg>
                 Sign up with Google
               </Button>
-
               <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
                 <span className="bg-card text-muted-foreground relative z-10 px-2">
                   Or continue with
