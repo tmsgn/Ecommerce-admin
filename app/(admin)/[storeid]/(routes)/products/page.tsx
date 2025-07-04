@@ -1,9 +1,7 @@
-import React from 'react'
+import ProductClient from "./components/product-client";
 
-const ProductPage = () => {
-  return (
-    <div>ProductPage</div>
-  )
-}
+const ProductsPage = async ({ params }: { params: { storeid: string } }) => {
+  return <ProductClient storeid={params.storeid} />;
+};
 
-export default ProductPage
+export default ProductsPage;

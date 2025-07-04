@@ -26,15 +26,18 @@ import { Trash } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
 interface SettingsFormProps {
   initialData: Store;
 }
 
-type SettingsFormValues = {
-  name: string;
-};
+const settingsFormSchema = z.object({
+  name: z.string().min(1, "Store name is required"),
+});
+type SettingsFormValues = z.infer<typeof settingsFormSchema>;
 
 export const SettingsForm: React.FC<SettingsFormProps> = ({ initialData }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -45,6 +48,7 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({ initialData }) => {
   const router = useRouter();
 
   const form = useForm<SettingsFormValues>({
+    resolver: zodResolver(settingsFormSchema),
     defaultValues: {
       name: initialData.name,
     },
@@ -121,20 +125,7 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({ initialData }) => {
                       {...field}
                     />
                   </FormControl>
-                  <div className="mt-2">
-                    <Select value={storeType} onValueChange={setStoreType}>
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Store type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Shoe store">Shoe store</SelectItem>
-                        <SelectItem value="Cloth store">Cloth store</SelectItem>
-                        <SelectItem value="Electronics store">
-                          Electronics store
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+
                   <FormMessage />
                 </FormItem>
               )}

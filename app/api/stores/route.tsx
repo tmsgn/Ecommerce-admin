@@ -21,7 +21,6 @@ export async function POST(req: Request) {
       data: {
         name,
         userId,
-        type: body.type, 
       },
     });
 

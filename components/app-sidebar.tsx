@@ -24,11 +24,6 @@ export async function AppSidebar({
   });
 
   // Fetch categories for the current store
-  const categories = await prismadb.catagory.findMany({
-    where: { storeId: storeid },
-    orderBy: { createdAt: "asc" },
-  });
-
   const data = {
     user: {
       name: user?.firstName
@@ -41,7 +36,6 @@ export async function AppSidebar({
       ...stores.map((store) => ({
         name: store.name,
         id: store.id,
-        type: store.type,
       })),
     ],
     navMain: [
@@ -56,8 +50,8 @@ export async function AppSidebar({
         icon: "shirt",
       },
       {
-        title: "Catagories",
-        url: `/${storeid}/catagories`,
+        title: "Orders",
+        url: `/${storeid}/orders`,
         icon: "book-open",
         
       },

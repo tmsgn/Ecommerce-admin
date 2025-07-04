@@ -13,6 +13,9 @@ import { Label } from "@/components/ui/label";
 import { useAuth, useSignIn } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 export function LoginForm({
@@ -53,8 +56,25 @@ export function LoginForm({
     );
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Zod schema for login form
+  const loginSchema = z.object({
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+  });
+
+  type LoginFormValues = z.infer<typeof loginSchema>;
+  // Use React Hook Form for login
+  const {
+    handleSubmit: rhfHandleSubmit,
+    register,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+    mode: "onChange",
+  });
+
+  const onLoginSubmit = async (data: LoginFormValues) => {
     setError("");
     setForgotMsg("");
     setLoading(true);
@@ -63,11 +83,10 @@ export function LoginForm({
         setError("Clerk sign-in object not loaded.");
         return;
       }
-      if (!email || !password) {
-        setError("Please enter both email and password.");
-        return;
-      }
-      const result = await signIn.create({ identifier: email, password });
+      const result = await signIn.create({
+        identifier: data.email,
+        password: data.password,
+      });
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         toast.success("Signed in successfully");
@@ -238,7 +257,10 @@ export function LoginForm({
               </div>
             </form>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form
+              onSubmit={rhfHandleSubmit(onLoginSubmit)}
+              className="space-y-4"
+            >
               <div className="grid gap-6">
                 <div className="flex flex-col gap-4">
                   <Button
@@ -287,11 +309,14 @@ export function LoginForm({
                       id="email"
                       type="email"
                       placeholder="m@example.com"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
                       disabled={loading}
+                      {...register("email")}
                     />
+                    {errors.email && (
+                      <div className="text-red-500 text-xs">
+                        {errors.email.message as string}
+                      </div>
+                    )}
                   </div>
                   <div className="grid gap-3">
                     <div className="flex items-center">
@@ -314,25 +339,23 @@ export function LoginForm({
                     <Input
                       id="password"
                       type="password"
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
                       disabled={loading}
+                      {...register("password")}
                     />
+                    {errors.password && (
+                      <div className="text-red-500 text-xs">
+                        {errors.password.message as string}
+                      </div>
+                    )}
                   </div>
                   {error && (
                     <div className="text-red-500 text-sm text-center">
                       {error}
                     </div>
                   )}
-                  <Button
-                    type="submit"
-                
-                    disabled={loading || !email || !password}
-                  >
+                  <Button type="submit" disabled={loading}>
                     {loading ? "Signing in..." : "Sign In"}
                   </Button>
-                
                 </div>
                 <div className="text-center text-sm">
                   Don't have an account?{" "}

@@ -28,7 +28,6 @@ export function TeamSwitcher({
   stores: {
     name: string;
     id: string;
-    type: string;
   }[];
   storeid: string;
 }) {
@@ -70,7 +69,6 @@ export function TeamSwitcher({
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{activeStore.name}</span>
-                <span className="truncate text-xs">{activeStore.type}</span>
               </div>
               <ChevronsUpDown className="ml-auto" />
             </SidebarMenuButton>
@@ -103,9 +101,6 @@ export function TeamSwitcher({
                   </div>
                   <div className="truncate font-medium flex flex-col gap-0.5">
                     {store.name}
-                    <span className="truncate text-xs text-muted-foreground">
-                      {store.type}
-                    </span>
                   </div>
                 </DropdownMenuItem>
               );

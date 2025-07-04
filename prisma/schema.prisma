@@ -6,47 +6,55 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../lib/generated/prisma"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Store {
-  id         String      @id @default(uuid())
-  name       String      @unique
-  type       String
-  logo       String?
-  userId     String
-  products   Product[]
-  categories Catagory[]   
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  id        String    @id @default(uuid())
+  name      String    @unique
+  userId    String
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model Product {
-  id          String    @id @default(uuid())
+  id          String        @id @default(uuid())
   name        String
   description String?
   price       Float
-  image       String?
+  status      ProductStatus
   storeId     String
-  categoryId  String    
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  store       Store      @relation(fields: [storeId], references: [id])
-  catagory    Catagory   @relation(fields: [categoryId], references: [id])
+  isFeatured  Boolean       @default(false)
+  catagory    Catagory
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  store       Store         @relation(fields: [storeId], references: [id])
+  images      Image[]
 }
 
-model Catagory {
-  id         String     @id @default(uuid())
-  name       String
-  storeId    String
-  store      Store      @relation(fields: [storeId], references: [id])
-  products   Product[]
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+model Image {
+  id        String   @id @default(uuid())
+  url       String
+  productId String
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum ProductStatus {
+  draft
+  published
+  archived
+}
+
+enum Catagory {
+  men
+  women
+  kids
 }

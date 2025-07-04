@@ -30,7 +30,6 @@ export async function PATCH(
       },
       data: {
         name,
-        type: body.type, 
       },
     });
 

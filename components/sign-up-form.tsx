@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSignUp } from "@clerk/nextjs";
 import { useState } from "react";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 export function SignUpForm({
   className,
@@ -24,15 +26,36 @@ export function SignUpForm({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Zod schema for sign up form
+  const signUpSchema = z.object({
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+  });
+
+  type SignUpFormValues = z.infer<typeof signUpSchema>;
+
+  // Use React Hook Form for sign up
+  // Use React Hook Form for sign up (fix for type error)
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const useForm = require("react-hook-form").useForm;
+  const {
+    handleSubmit: rhfHandleSubmit,
+    register,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: { email: "", password: "" },
+    mode: "onChange",
+  });
+
+  const onSignUpSubmit = async (data: SignUpFormValues) => {
     setError("");
     setLoading(true);
     try {
       if (!isLoaded) return;
       const result = await signUp.create({
-        emailAddress: email,
-        password,
+        emailAddress: data.email,
+        password: data.password,
       });
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
@@ -91,7 +114,7 @@ export function SignUpForm({
         </CardHeader>
         <CardContent>
           <form
-            onSubmit={handleSubmit}
+            onSubmit={rhfHandleSubmit(onSignUpSubmit)}
             className="space-y-4 p-4 bg-white dark:bg-zinc-900 rounded shadow"
           >
             <div className="grid gap-6">
@@ -101,30 +124,35 @@ export function SignUpForm({
                   id="email"
                   type="email"
                   placeholder="m@example.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  {...register("email")}
                 />
+                {errors.email && (
+                  <div className="text-red-500 text-xs">
+                    {errors.email.message as string}
+                  </div>
+                )}
               </div>
               <div className="grid gap-3">
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  {...register("password")}
                 />
+                {errors.password && (
+                  <div className="text-red-500 text-xs">
+                    {errors.password.message as string}
+                  </div>
+                )}
               </div>
 
               {error && (
                 <div className="text-red-500 text-sm text-center">{error}</div>
               )}
 
-              <Button
-                type="submit"
-                disabled={loading}
-              >
+              <Button type="submit" disabled={loading}>
                 {loading ? "Signing up..." : "Sign Up"}
               </Button>
 

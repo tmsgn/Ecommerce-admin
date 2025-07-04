@@ -21,7 +21,6 @@ const AdminPage = async ({ params }: { params: { storeid: string } }) => {
       _count: {
         select: {
           products: true,
-          categories: true,
         },
       },
     },
@@ -39,15 +38,11 @@ const AdminPage = async ({ params }: { params: { storeid: string } }) => {
               }`}
             >
               <div className="font-semibold">{store.name}</div>
-              <div className="text-sm text-muted-foreground border w-fit p-1 rounded-lg">
-                {store.type}
-              </div>
+
               <div className="text-sm text-muted-foreground">
                 {store._count.products} products
               </div>
-              <div className="text-sm text-muted-foreground">
-                {store._count.categories} categories
-              </div>
+
               <div className="text-sm text-muted-foreground">
                 Created: {store.createdAt.toLocaleDateString()}
               </div>

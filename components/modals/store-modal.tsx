@@ -5,13 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
 import { toast } from "sonner";
 
 export const StoreModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
@@ -19,7 +12,6 @@ export const StoreModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
   onClose,
 }) => {
   const [storeName, setStoreName] = useState("");
-  const [storeType, setStoreType] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
@@ -29,7 +21,7 @@ export const StoreModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
       setIsLoading(true);
       const response = await axios.post("/api/stores", {
         name: storeName,
-        type: storeType,
+
       });
       toast.success("Store created successfully");
       window.location.assign(`/${response.data.id}`);
@@ -56,19 +48,9 @@ export const StoreModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
           required
           autoFocus
         />
-        <Select value={storeType} onValueChange={setStoreType}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Store type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Shoe store">Shoe store</SelectItem>
-            <SelectItem value="Cloth store">Cloth store</SelectItem>
-            <SelectItem value="Electronics store">Electronics store</SelectItem>
-          </SelectContent>
-        </Select>
         <Button
           type="submit"
-          disabled={!storeName.trim() || !storeType || isLoading}
+          disabled={!storeName.trim() || isLoading}
         >
           {isLoading ? "Creating..." : "Create Store"}
         </Button>
