@@ -6,43 +6,53 @@ import { CellAction } from "./cell-action";
 export type ProductColumn = {
   id: string;
   name: string;
+  price: string; 
+  material: string;
+  brand: string;
   category: string;
-  price: string;
-  stock: number;
+  size: string;
+  color: string;
   createdAt: string;
-  images: string;
 };
 
 export const columns: ColumnDef<ProductColumn>[] = [
   {
-    accessorKey: "images",
-    header: "Image",
-    cell: ({ row }) => {
-      const url = row.original.images;
-      return (
-        <img
-          src={url}
-          alt={row.original.name}
-          className="w-8 h-8 rounded-md object-cover"
-        />
-      );
-    },
-  },
-  {
     accessorKey: "name",
     header: "Name",
-  },
-  {
-    accessorKey: "category",
-    header: "Category",
   },
   {
     accessorKey: "price",
     header: "Price",
   },
   {
-    accessorKey: "stock",
-    header: "Stock",
+    accessorKey: "category",
+    header: "Category",
+  },
+  {
+    accessorKey: "brand",
+    header: "Brand",
+  },
+  {
+    accessorKey: "material",
+    header: "Material",
+  },
+  {
+    accessorKey: "size",
+    header: "Size",
+  },
+  {
+    accessorKey: "color",
+    header: "Color",
+    cell: ({ row }) => (
+      <div className="flex items-center gap-x-2">
+        {row.original.color}
+        <div
+          className="h-6 w-6 rounded-full border"
+  
+          style={{ backgroundColor: row.original.color.toLowerCase() }}
+        />
+      </div>
+    ),
   },
   {
     accessorKey: "createdAt",

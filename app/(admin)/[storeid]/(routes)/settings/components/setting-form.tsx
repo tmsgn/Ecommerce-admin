@@ -49,7 +49,7 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({ initialData }) => {
     try {
       setIsLoading(true);
       await axios.patch(`/api/stores/${params.storeid}`, values);
-      router.refresh();
+      window.location.assign(`/${params.storeid}`);
       toast.success("Store settings updated successfully.");
     } catch (error) {
       toast.error("Failed to update store settings.");
@@ -125,7 +125,7 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({ initialData }) => {
                   <FormControl>
                     <Textarea
                       disabled={isLoading}
-                      placeholder="A short description for your store"
+                      placeholder="A short description about your store"
                       {...field}
                       value={field.value || ""}
                     />

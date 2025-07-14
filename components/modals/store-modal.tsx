@@ -35,13 +35,12 @@ export const StoreModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
     e.preventDefault();
     try {
       setIsLoading(true);
-      // Send the entire storeData object
+    
       const response = await axios.post("/api/stores", storeData);
 
       toast.success("Store created successfully");
-      router.refresh(); // Refreshes server components to reflect the new store
-      onClose(); // Close the modal
-      // This will redirect to the new store's dashboard or settings page
+      router.refresh(); 
+      onClose();
       window.location.assign(`/${response.data.id}`);
     } catch (error) {
       toast.error("Something went wrong. Please try again.");
@@ -60,8 +59,8 @@ export const StoreModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-4">
         <Input
-          name="name" // Add name attribute
-          placeholder="Store name (e.g., Bahir Dar Kicks)"
+          name="name"
+          placeholder="Shoe store name..."
           value={storeData.name}
           onChange={handleChange}
           required
@@ -70,7 +69,7 @@ export const StoreModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
         />
         <Textarea
           name="description" // Add name attribute
-          placeholder="A short description of what your store sells."
+          placeholder="A short description about your store."
           value={storeData.description}
           onChange={handleChange}
           disabled={isLoading}

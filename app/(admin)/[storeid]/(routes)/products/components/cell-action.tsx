@@ -9,7 +9,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Copy, Edit, MoreHorizontal, Trash } from "lucide-react";
+import { Check, Copy, Edit, MoreHorizontal, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -19,28 +19,32 @@ import { AlertModal } from "@/components/modals/alert-modal";
 interface CellActionProps {
   data: ProductColumn;
 }
-
 export const CellAction: React.FC<CellActionProps> = ({ data }) => {
   const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState(false);
   const router = useRouter();
   const params = useParams();
+  const [open, setOpen] = useState(false);
 
   const onCopy = (id: string) => {
+    setLoading(true);
     navigator.clipboard.writeText(id);
-    toast.success("Product ID copied to clipboard.");
+    setTimeout(() => {
+      setLoading(false);
+    }, 1000);
   };
 
   const onDelete = async () => {
     try {
       setLoading(true);
-      // FIX: Corrected the API route to include "/stores/"
-      await axios.delete(`/api/stores/${params.storeid}/products/${data.id}`);
-      router.refresh(); // Refreshes the table data
-      toast.success("Product deleted successfully.");
+      await axios.delete(
+        `/api/${params.storeid}/products/${data.id}`
+      );
+      router.refresh();
+      router.push(`/${params.storeid}/products`);
+      toast.success("Product deleted successfully");
     } catch (error) {
       toast.error(
-        "Something went wrong. Make sure this product is not part of any open orders."
+        "Make sure you removed all dependencies using this product first."
       );
     } finally {
       setLoading(false);
@@ -56,6 +60,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
         onConfirm={onDelete}
         loading={loading}
       />
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant={"ghost"} className="h-8 w-8 p-0">
@@ -65,8 +70,12 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => onCopy(data.id)}>
-            <Copy className="mr-2 h-4 w-4" />
+          <DropdownMenuItem onClick={() => onCopy(data.id)} disabled={loading}>
+            {loading ? (
+              <Check className="mr-2 h-4 w-4" />
+            ) : (
+              <Copy className="mr-2 h-4 w-4" />
+            )}
             Copy Id
           </DropdownMenuItem>
           <DropdownMenuItem
@@ -77,11 +86,8 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
             <Edit className="mr-2 h-4 w-4" />
             Update
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => setOpen(true)}
-            className="text-red-600"
-          >
-            <Trash className="mr-2 h-4 w-4" />
+          <DropdownMenuItem onClick={() => setOpen(true)} disabled={loading}>
+            <Trash className="mr-2 text-red-800 h-4 w-4" />
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>

@@ -8,81 +8,111 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum ProductStatus {
-  PUBLISHED
-  DRAFT
-  ARCHIVED
+enum ShoeSize {
+  US6
+  US7
+  US8
+  US9
+  US10
+  US11
+  US12
 }
 
-enum DiscountType {
-  PERCENTAGE
-  FIXED_AMOUNT
+enum ShoeColor {
+  BLACK
+  WHITE
+  RED
+  BLUE
+  GREEN
+  YELLOW
+}
+
+enum Material {
+  LEATHER
+  MESH
+  CANVAS
+  SYNTHETIC
+  KNIT
+}
+enum Brand {
+  NIKE
+  ADIDAS
+  PUMA
+  REEBOK
+  UNDER_ARMOUR
 }
 
 model Store {
-  id        String    @id @default(cuid())
-  userId    String    @unique
-  name      String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  products  Product[]
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  userId      String     @unique
+  products    Product[]
+  categories  Category[]
+  orders      Order[]
+  createdAt   DateTime   @default(now())
 }
 
 model Product {
-  id          String        @id @default(cuid())
-  title       String
-  description String?
-  status      ProductStatus @default(DRAFT)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id          String      @id @default(cuid())
+  name        String
+  description String
+  price       Float
+  material    Material
+  brand       Brand
+  store       Store       @relation(fields: [storeId], references: [id])
+  storeId     String
+  category    Category    @relation(fields: [categoryId], references: [id])
+  categoryId  String
+  variants    Variant[]
+  images      Image[]
+  createdAt   DateTime    @default(now())
+  OrderItem   OrderItem[]
+}
 
-  storeId    String
-  store      Store            @relation(fields: [storeId], references: [id])
-  images     Image[]
-  variants   ProductVariant[]
-  options    Option[]         @relation("ProductOptions")
-  categories Category[]
+model Variant {
+  id        String    @id @default(cuid())
+  product   Product   @relation(fields: [productId], references: [id])
+  productId String
+  size      ShoeSize
+  color     ShoeColor
+  stock     Int
+  price     Float
+  sku       String?
 }
 
 model Category {
   id       String    @id @default(cuid())
-  name     String    @unique
+  name     String
+  store    Store     @relation(fields: [storeId], references: [id])
+  storeId  String
   products Product[]
 }
 
 model Image {
-  id        String  @id @default(cuid())
+  id        String   @id @default(uuid())
   url       String
   productId String
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-model Option {
-  id       String        @id @default(cuid())
-  name     String        @unique
-  products Product[]     @relation("ProductOptions")
-  values   OptionValue[]
+model Order {
+  id        String      @id @default(cuid())
+  store     Store       @relation(fields: [storeId], references: [id])
+  storeId   String
+  userEmail String
+  total     Float
+  items     OrderItem[]
+  createdAt DateTime    @default(now())
 }
 
-model OptionValue {
-  id       String           @id @default(cuid())
-  name     String
-  optionId String
-  option   Option           @relation(fields: [optionId], references: [id])
-  variants ProductVariant[] @relation("VariantValues")
-
-  @@unique([name, optionId])
-}
-
-model ProductVariant {
-  id            String        @id @default(cuid())
-  price         Float
-  sku           String?       @unique
-  inventory     Int           @default(0)
-  discountType  DiscountType?
-  discountValue Float?
-
-  productId    String
-  product      Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
-  optionValues OptionValue[] @relation("VariantValues")
+model OrderItem {
+  id        String  @id @default(cuid())
+  order     Order   @relation(fields: [orderId], references: [id])
+  orderId   String
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+  quantity  Int
 }

@@ -1,27 +1,24 @@
-import { ProductStatus, Catagory } from "@prisma/client";
+import { ShoeColor, ShoeSize, Material, Brand } from "@prisma/client";
 
-
-export type ProductFormValues = {
-  name: string;
-  description?: string;
-  price: number;
-  isFeatured: boolean;
-  status: ProductStatus;  // Strongly typed enum
-  catagory: Catagory;
-  images: { url: string }[];
-};
-
-// For passing initial data to forms (safe product type)
-export type SafeProduct = {
+export interface ProductFormValues {
   id: string;
   name: string;
-  description: string | null;
+  description: string;
   price: number;
-  status: ProductStatus;
-  storeId: string;
-  isFeatured: boolean;
-  catagory: Catagory;
-  images: { url: string }[];
-  createdAt: string;  // Dates converted to string
-  updatedAt: string;
-};
+  material: Material;
+  brand: Brand;
+  categoryId: string;
+  categoryName?: string; 
+  images: {
+    url: string;
+  }[];
+  variants: {
+    id?: string;
+    size: ShoeSize;
+    color: ShoeColor;
+    price: number;
+    stock: number;
+    sku?: string | null;
+  }[];
+  createdAt: string;
+}
