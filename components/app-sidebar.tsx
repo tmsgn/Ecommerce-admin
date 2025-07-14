@@ -50,6 +50,11 @@ export async function AppSidebar({
         icon: "shirt",
       },
       {
+        title: "Banners",
+        url: `/${storeid}/banners`,
+        icon: "banner",
+      },
+      {
         title: "Orders",
         url: `/${storeid}/orders`,
         icon: "book-open",

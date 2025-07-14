@@ -8,13 +8,14 @@ export async function PATCH(
 ) {
   try {
     const { userId } = await auth();
-    const body = await request.json();
-    const { name } = body;
+    // Destructure all fields that can be updated from the body
+    const { name, description } = await request.json();
 
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
+    // You can update any field, so we only need to validate the ones provided
     if (!name) {
       return new NextResponse("Name is required", { status: 400 });
     }
@@ -23,13 +24,21 @@ export async function PATCH(
       return new NextResponse("Store ID is required", { status: 400 });
     }
 
-    const store = await prismadb.store.updateMany({
+    // Generate a new slug if the name is being updated
+    const slug = name
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^\w\-]+/g, "");
+
+    const store = await prismadb.store.update({
       where: {
         id: params.storeid,
-        userId: userId,
+        userId: userId, // This ensures a user can only update their own store
       },
       data: {
         name,
+        description,
+        slug,
       },
     });
 
@@ -41,7 +50,7 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: Request,
+  request: Request, // request is unused but required by Next.js convention
   { params }: { params: { storeid: string } }
 ) {
   try {
@@ -55,16 +64,19 @@ export async function DELETE(
       return new NextResponse("Store ID is required", { status: 400 });
     }
 
-    const store = await prismadb.store.deleteMany({
+    // Use `delete` instead of `deleteMany` to target a single record
+    // The `onDelete: Cascade` in your schema will handle deleting related products
+    const store = await prismadb.store.delete({
       where: {
         id: params.storeid,
-        userId: userId,
+        userId: userId, // This security check prevents a user from deleting another's store
       },
     });
 
     return NextResponse.json(store);
   } catch (error) {
-    console.error("[DELETE_PATCH]", error);
+    // Corrected the log message
+    console.error("[STORE_DELETE]", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

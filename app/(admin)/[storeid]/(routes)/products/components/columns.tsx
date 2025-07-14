@@ -3,45 +3,27 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { CellAction } from "./cell-action";
 
-export function formatDate(dateString: string) {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-}
-
-export type Product = {
+export type ProductColumn = {
   id: string;
-  images: string;
-  description: string;
-  isFeatured: boolean;
-  status: string;
   name: string;
-  price: number;
+  category: string;
+  price: string;
+  stock: number;
   createdAt: string;
-  updatedAt: string;
+  images: string;
 };
 
-export const columns: ColumnDef<Product>[] = [
+export const columns: ColumnDef<ProductColumn>[] = [
   {
     accessorKey: "images",
     header: "Image",
     cell: ({ row }) => {
-     
-      let url = row.original.images;
-      try {
-        const arr = JSON.parse(url);
-        url =
-          Array.isArray(arr) && arr.length > 0 ? arr[0]?.url || arr[0] : url;
-      } catch {
-      }
+      const url = row.original.images;
       return (
         <img
           src={url}
           alt={row.original.name}
-          style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 6 }}
+          className="w-8 h-8 rounded-md object-cover"
         />
       );
     },
@@ -51,16 +33,24 @@ export const columns: ColumnDef<Product>[] = [
     header: "Name",
   },
   {
+    accessorKey: "category",
+    header: "Category",
+  },
+  {
     accessorKey: "price",
     header: "Price",
   },
   {
+    accessorKey: "stock",
+    header: "Stock",
+  },
+  {
     accessorKey: "createdAt",
     header: "Date",
-    cell: ({ row }) => formatDate(row.original.createdAt),
   },
   {
     id: "actions",
+    header: "Actions",
     cell: ({ row }) => <CellAction data={row.original} />,
   },
 ];

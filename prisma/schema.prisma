@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,47 +8,81 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum ProductStatus {
+  PUBLISHED
+  DRAFT
+  ARCHIVED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
 model Store {
-  id        String    @id @default(uuid())
-  name      String    @unique
-  userId    String
-  products  Product[]
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  name      String
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  products  Product[]
 }
 
 model Product {
-  id          String        @id @default(uuid())
-  name        String
+  id          String        @id @default(cuid())
+  title       String
   description String?
-  price       Float
-  status      ProductStatus
-  storeId     String
-  isFeatured  Boolean       @default(false)
-  catagory    Catagory
+  status      ProductStatus @default(DRAFT)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
-  store       Store         @relation(fields: [storeId], references: [id])
-  images      Image[]
+
+  storeId    String
+  store      Store            @relation(fields: [storeId], references: [id])
+  images     Image[]
+  variants   ProductVariant[]
+  options    Option[]         @relation("ProductOptions")
+  categories Category[]
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  products Product[]
 }
 
 model Image {
-  id        String   @id @default(uuid())
+  id        String  @id @default(cuid())
   url       String
   productId String
-  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
-enum ProductStatus {
-  draft
-  published
-  archived
+model Option {
+  id       String        @id @default(cuid())
+  name     String        @unique
+  products Product[]     @relation("ProductOptions")
+  values   OptionValue[]
 }
 
-enum Catagory {
-  men
-  women
-  kids
+model OptionValue {
+  id       String           @id @default(cuid())
+  name     String
+  optionId String
+  option   Option           @relation(fields: [optionId], references: [id])
+  variants ProductVariant[] @relation("VariantValues")
+
+  @@unique([name, optionId])
+}
+
+model ProductVariant {
+  id            String        @id @default(cuid())
+  price         Float
+  sku           String?       @unique
+  inventory     Int           @default(0)
+  discountType  DiscountType?
+  discountValue Float?
+
+  productId    String
+  product      Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  optionValues OptionValue[] @relation("VariantValues")
 }

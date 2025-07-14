@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronRight, ChartAreaIcon, ShirtIcon, BookOpen, Settings2 } from "lucide-react"
+import { ChevronRight, ChartAreaIcon, ShirtIcon, BookOpen, Settings2, SignpostIcon } from "lucide-react"
 import { usePathname } from "next/navigation"
 
 import {
@@ -24,6 +24,7 @@ const ICONS: Record<string, React.ElementType> = {
   "shirt": ShirtIcon,
   "book-open": BookOpen,
   "settings": Settings2,
+  "banner": SignpostIcon
 }
 
 export function NavMain({

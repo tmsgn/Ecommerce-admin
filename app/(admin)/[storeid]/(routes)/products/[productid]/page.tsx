@@ -1,14 +1,5 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import React from "react";
-import { ProductForm } from "./components/product-form";
 import prismadb from "@/lib/prismadb";
-import { SafeProduct } from "@/types";
+import { ProductForm } from "./components/product-form";
 
 interface ProductPageProps {
   params: { productid: string; storeid: string };
@@ -21,34 +12,34 @@ const ProductPage = async ({ params }: ProductPageProps) => {
     },
     include: {
       images: true,
+      variants: {
+        include: {
+          optionValues: true,
+        },
+      },
+      options: true,
+      categories: true,
     },
   });
 
-  const safeProduct: SafeProduct | undefined = product
-    ? {
-        ...product,
-        price: Number(product.price),
-        images: product.images.map((img) => ({ url: img.url })),
-        createdAt: product.createdAt.toISOString(),
-        updatedAt: product.updatedAt.toISOString(),
-      }
-    : undefined;
+  const categories = await prismadb.category.findMany();
+
+  // Fetch all available options and their values for the form
+  const options = await prismadb.option.findMany({
+    include: {
+      values: true,
+    },
+  });
 
   return (
-    <div>
-      <Card>
-        <CardHeader>
-          <CardTitle>{product ? "Edit Product" : "Create Product"}</CardTitle>
-          <CardDescription>
-            {product
-              ? "Update the fields below to edit the product."
-              : "Fill this form to create a new product."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ProductForm initialData={safeProduct} />
-        </CardContent>
-      </Card>
+    <div className="flex-col">
+      <div className="flex-1 space-y-4 p-8 pt-6">
+        <ProductForm 
+          initialData={product} 
+          categories={categories}
+          options={options}
+        />
+      </div>
     </div>
   );
 };
