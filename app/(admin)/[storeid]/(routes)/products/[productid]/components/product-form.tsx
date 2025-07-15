@@ -2,22 +2,23 @@
 
 import { useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import axios from "axios";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import {
-  Product,
-  Image,
-  Variant,
-  Category,
-  ShoeColor,
-  ShoeSize,
-  Material,
-  Brand,
-} from "@prisma/client";
+import { Trash, Plus, X } from "lucide-react";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
+import {
+  Category,
+  Brand,
+  Material,
+  ShoeSize,
+  ShoeColor,
+  Image,
+  Product,
+  Variant,
+} from "@prisma/client";
 import { Heading } from "@/components/ui/heading";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -38,38 +39,69 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AlertModal } from "@/components/modals/alert-modal";
 import { ImageUpload } from "@/components/image-uploader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-import { ProductFormValues } from "@/types";
+const productFormSchema = z.object({
+  name: z.string().min(1, "Product name is required"),
+  description: z.string().min(1, "Description is required"),
+  price: z.coerce.number().min(0.01, "Price must be greater than 0"),
+  images: z.array(z.object({ url: z.string().url("Invalid image URL") })).min(1, "At least one image is required"),
+  categoryId: z.string().min(1, "Category is required"),
+  brandId: z.string().min(1, "Brand is required"),
+  materialId: z.string().min(1, "Material is required"),
+  variants: z.array(
+    z.object({
+      price: z.coerce.number().min(0, "Variant price required"),
+      stock: z.coerce.number().min(0, "Stock required"),
+      sku: z.string().optional().nullable(),
+      sizeId: z.string().min(1, "Size is required"),
+      colorId: z.string().min(1, "Color is required"),
+    })
+  ).min(1, "At least one variant is required"),
+});
+
+type ProductFormType = z.infer<typeof productFormSchema>;
 
 interface ProductFormProps {
-  initialData: ProductFormValues | null;
+  initialData: ProductFormType | null;
   categories: Category[];
+  brands: Brand[];
+  materials: Material[];
+  sizes: ShoeSize[];
+  colors: ShoeColor[];
 }
 
 export const ProductForm: React.FC<ProductFormProps> = ({
   initialData,
   categories,
+  brands,
+  materials,
+  sizes,
+  colors,
 }) => {
   const params = useParams();
   const router = useRouter();
 
+  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const form = useForm<ProductFormValues>({
-    resolver: zodResolver(z.any()), 
+  const title = initialData ? "Edit product" : "Create product";
+  const toastMessage = initialData ? "Product updated." : "Product created.";
+  const action = initialData ? "Save changes" : "Create";
+
+  const form = useForm({
+    resolver: zodResolver(productFormSchema),
     defaultValues: initialData || {
-      id: "",
       name: "",
       description: "",
       price: 0,
-      material: "LEATHER",
-      brand: "NIKE",
-      categoryId: "",
       images: [],
+      categoryId: "",
+      brandId: "",
+      materialId: "",
       variants: [],
-      createdAt: "",
     },
   });
 
@@ -78,159 +110,419 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     name: "variants",
   });
 
-  const onSubmit = async (data: ProductFormValues) => {
+  const onSubmit = async (data: ProductFormType) => {
+    // Only keep the variant toast error for empty size/color (should be rare now)
+    const invalidVariant = data.variants.some(
+      (v) => !v.sizeId || !v.colorId
+    );
+    if (invalidVariant) {
+      toast.error("All variants must have a size and color selected.");
+      return;
+    }
+    // No need to convert price/stock to number, Zod handles it
     try {
       setLoading(true);
       if (initialData) {
         await axios.patch(
-          `/api/${params.storeid}/products/${params.productid}`,
+          `/api/stores/${params.storeid}/products/${params.productid}`,
           data
         );
       } else {
-        await axios.post(`/api/${params.storeid}/products`, data);
+        await axios.post(`/api/stores/${params.storeid}/products`, data);
       }
-      router.push(`/${params.storeid}/products`);
       router.refresh();
-      toast.success("Success");
+      router.push(`/${params.storeid}/products`);
+      toast.success(toastMessage);
     } catch (error) {
-      toast.error("Something went wrong");
+      toast.error("Something went wrong.");
     } finally {
       setLoading(false);
     }
   };
 
+  const onDelete = async () => {
+    /* ... delete logic ... */
+  };
+
   return (
     <>
-      <Heading
-        title={initialData ? "Edit Product" : "Create Product"}
-        description="Manage your product information."
+      <AlertModal
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        onConfirm={onDelete}
+        loading={loading}
       />
+      <div className="flex items-center justify-between">
+        <Heading
+          title={title}
+          description="Manage product details, variants, and organization."
+        />
+        {initialData && (
+          <Button
+            disabled={loading}
+            variant="destructive"
+            size="sm"
+            onClick={() => setOpen(true)}
+          >
+            <Trash className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
       <Separator />
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>General Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input disabled={loading} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea rows={5} disabled={loading} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        disabled={loading}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="space-y-8 w-full"
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Column */}
+            <div className="lg:col-span-2 space-y-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle>General Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        {" "}
+                        <FormLabel>Name</FormLabel>{" "}
+                        <FormControl>
+                          <Input
+                            disabled={loading}
+                            placeholder="Product name"
+                            {...field}
+                          />
+                        </FormControl>{" "}
+                        <FormMessage />{" "}
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>{" "}
+                        <FormControl>
+                          <Textarea
+                            disabled={loading}
+                            rows={5}
+                            placeholder="Product description"
+                            {...field}
+                          />
+                        </FormControl>{" "}
+                        <FormMessage />{" "}
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="price"
+                    render={({ field }) => (
+                      <FormItem>
+                        {" "}
+                        <FormLabel>Base Price</FormLabel>{" "}
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            disabled={loading}
+                            {...field}
+                            value={typeof field.value === 'number' ? field.value : Number(field.value) || 0}
+                          />
+                        </FormControl>{" "}
+                        <FormMessage />{" "}
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Media</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FormField
-                control={form.control}
-                name="images"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <ImageUpload
-                        value={field.value.map((image) => image.url)}
-                        disabled={loading}
-                        onChange={(url) =>
-                          field.onChange([...field.value, { url }])
-                        }
-                        onRemove={(url) =>
-                          field.onChange(
-                            field.value.filter((img) => img.url !== url)
-                          )
-                        }
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Media</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={form.control}
+                    name="images"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <ImageUpload
+                            value={field.value.map((image) => image.url)}
+                            onChange={(
+                              url: string // FIX: Add type 'string'
+                            ) => field.onChange([...field.value, { url }])}
+                            onRemove={(
+                              url: string // FIX: Add type 'string'
+                            ) =>
+                              field.onChange([
+                                ...field.value.filter(
+                                  (current) => current.url !== url
+                                ),
+                              ])
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Category</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FormField
-                control={form.control}
-                name="categoryId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Select Category</FormLabel>
-                    <Select
-                      disabled={loading}
-                      onValueChange={field.onChange}
-                      value={field.value}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Variants</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {fields.map((field, index) => (
+                    <div
+                      key={field.id}
+                      className="grid grid-cols-12 gap-4 items-end border p-4 rounded-md relative"
                     >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a category" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
+                      <div className="col-span-6 md:col-span-3">
+                        {" "}
+                        <FormField
+                          control={form.control}
+                          name={`variants.${index}.sizeId`}
+                          render={({ field }) => (
+                            <FormItem>
+                              {" "}
+                              <FormLabel>Size</FormLabel>{" "}
+                              <Select
+                                onValueChange={field.onChange}
+                                value={field.value}
+                                defaultValue={field.value}
+                              >
+                                {" "}
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select size" />
+                                  </SelectTrigger>
+                                </FormControl>{" "}
+                                <SelectContent>
+                                  {sizes.map((s) => (
+                                    <SelectItem key={s.id} value={s.id}>
+                                      {s.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>{" "}
+                              </Select>{" "}
+                              <FormMessage />{" "}
+                            </FormItem>
+                          )}
+                        />{" "}
+                      </div>
+                      <div className="col-span-6 md:col-span-3">
+                        {" "}
+                        <FormField
+                          control={form.control}
+                          name={`variants.${index}.colorId`}
+                          render={({ field }) => (
+                            <FormItem>
+                              {" "}
+                              <FormLabel>Color</FormLabel>{" "}
+                              <Select
+                                onValueChange={field.onChange}
+                                value={field.value}
+                                defaultValue={field.value}
+                              >
+                                {" "}
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select color" />
+                                  </SelectTrigger>
+                                </FormControl>{" "}
+                                <SelectContent>
+                                  {colors.map((c) => (
+                                    <SelectItem key={c.id} value={c.id}>
+                                      {c.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>{" "}
+                              </Select>{" "}
+                              <FormMessage />{" "}
+                            </FormItem>
+                          )}
+                        />{" "}
+                      </div>
+                      <div className="col-span-6 md:col-span-2">
+                        {" "}
+                        <FormField
+                          control={form.control}
+                          name={`variants.${index}.price`}
+                          render={({ field }) => (
+                            <FormItem>
+                              {" "}
+                              <FormLabel>Price</FormLabel>{" "}
+                              <FormControl>
+                                <Input type="number" step="0.01" {...field} value={typeof field.value === 'number' ? field.value : Number(field.value) || 0} />
+                              </FormControl>
+                              <FormMessage />{" "}
+                            </FormItem>
+                          )}
+                        />{" "}
+                      </div>
+                      <div className="col-span-6 md:col-span-2">
+                        {" "}
+                        <FormField
+                          control={form.control}
+                          name={`variants.${index}.stock`}
+                          render={({ field }) => (
+                            <FormItem>
+                              {" "}
+                              <FormLabel>Stock</FormLabel>{" "}
+                              <FormControl>
+                                <Input type="number" {...field} value={typeof field.value === 'number' ? field.value : Number(field.value) || 0} />
+                              </FormControl>
+                              <FormMessage />{" "}
+                            </FormItem>
+                          )}
+                        />{" "}
+                      </div>
+                      <div className="col-span-12 md:col-span-1">
+                        {" "}
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="destructive"
+                          onClick={() => remove(index)}
+                        >
+                          {" "}
+                          <X className="h-4 w-4" />{" "}
+                        </Button>{" "}
+                      </div>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      append({
+                        price: initialData?.price || 0,
+                        stock: 0,
+                        sizeId: "",
+                        colorId: "",
+                      })
+                    }
+                  >
+                    {" "}
+                    <Plus className="mr-2 h-4 w-4" /> Add Variant{" "}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
 
-          <div className="flex justify-end">
-            <Button type="submit" disabled={loading}>
-              {initialData ? "Save Changes" : "Create"}
+            {/* Right Column */}
+            <div className="space-y-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Organization</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="categoryId"
+                    render={({ field }) => (
+                      <FormItem>
+                        {" "}
+                        <FormLabel>Category</FormLabel>{" "}
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          defaultValue={field.value}
+                        >
+                          {" "}
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                          </FormControl>{" "}
+                          <SelectContent>
+                            {categories.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>{" "}
+                        </Select>{" "}
+                        <FormMessage />{" "}
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="brandId"
+                    render={({ field }) => (
+                      <FormItem>
+                        {" "}
+                        <FormLabel>Brand</FormLabel>{" "}
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          defaultValue={field.value}
+                        >
+                          {" "}
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a brand" />
+                            </SelectTrigger>
+                          </FormControl>{" "}
+                          <SelectContent>
+                            {brands.map((b) => (
+                              <SelectItem key={b.id} value={b.id}>
+                                {b.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>{" "}
+                        </Select>{" "}
+                        <FormMessage />{" "}
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="materialId"
+                    render={({ field }) => (
+                      <FormItem>
+                        {" "}
+                        <FormLabel>Material</FormLabel>{" "}
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          defaultValue={field.value}
+                        >
+                          {" "}
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a material" />
+                            </SelectTrigger>
+                          </FormControl>{" "}
+                          <SelectContent>
+                            {materials.map((m) => (
+                              <SelectItem key={m.id} value={m.id}>
+                                {m.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>{" "}
+                        </Select>{" "}
+                        <FormMessage />{" "}
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+          <div className="w-full flex justify-end">
+            <Button disabled={loading} type="submit">
+              {action}
             </Button>
           </div>
         </form>

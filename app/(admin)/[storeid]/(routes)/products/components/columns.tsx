@@ -5,6 +5,7 @@ import { CellAction } from "./cell-action";
 
 export type ProductColumn = {
   id: string;
+  image: string;
   name: string;
   price: string; 
   material: string;
@@ -16,6 +17,20 @@ export type ProductColumn = {
 };
 
 export const columns: ColumnDef<ProductColumn>[] = [
+  {
+    accessorKey: "image",
+    header: "Image",
+    cell: ({ row }) =>
+      row.original.image ? (
+        <img
+          src={row.original.image}
+          alt={row.original.name}
+          className="h-12 w-12 object-cover rounded"
+        />
+      ) : (
+        <div className="h-12 w-12 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-400">No Image</div>
+      ),
+  },
   {
     accessorKey: "name",
     header: "Name",

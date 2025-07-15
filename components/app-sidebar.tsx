@@ -40,25 +40,37 @@ export async function AppSidebar({
     ],
     navMain: [
       {
-        title: "Dashboard",
-        url: `/${storeid}/dashboard`,
-        icon: "chart-area",
-      },
-      {
         title: "Products",
         url: `/${storeid}/products`,
         icon: "shirt",
       },
       {
-        title: "Banners",
-        url: `/${storeid}/banners`,
-        icon: "banner",
+        title: "Catalog",
+        url: "#",
+        icon: "chart-area",
+        items: [
+          {
+            title: "Categories",
+            url: `/${storeid}/categories`,
+          },
+          {
+            title: "Brands",
+            url: `/${storeid}/brands`,
+          },
+          {
+            title: "Sizes",
+            url: `/${storeid}/sizes`,
+          },
+          {
+            title: "Colors",
+            url: `/${storeid}/colors`,
+          },
+        ],
       },
       {
         title: "Orders",
         url: `/${storeid}/orders`,
         icon: "book-open",
-        
       },
       {
         title: "Settings",

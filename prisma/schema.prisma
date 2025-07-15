@@ -8,85 +8,85 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum ShoeSize {
-  US6
-  US7
-  US8
-  US9
-  US10
-  US11
-  US12
-}
-
-enum ShoeColor {
-  BLACK
-  WHITE
-  RED
-  BLUE
-  GREEN
-  YELLOW
-}
-
-enum Material {
-  LEATHER
-  MESH
-  CANVAS
-  SYNTHETIC
-  KNIT
-}
-enum Brand {
-  NIKE
-  ADIDAS
-  PUMA
-  REEBOK
-  UNDER_ARMOUR
-}
-
 model Store {
-  id          String     @id @default(cuid())
+  id          String   @id @default(cuid())
+  userId      String   @unique
   name        String
   description String?
-  userId      String     @unique
-  products    Product[]
-  categories  Category[]
-  orders      Order[]
-  createdAt   DateTime   @default(now())
-}
+  createdAt   DateTime @default(now())
 
-model Product {
-  id          String      @id @default(cuid())
-  name        String
-  description String
-  price       Float
-  material    Material
-  brand       Brand
-  store       Store       @relation(fields: [storeId], references: [id])
-  storeId     String
-  category    Category    @relation(fields: [categoryId], references: [id])
-  categoryId  String
-  variants    Variant[]
-  images      Image[]
-  createdAt   DateTime    @default(now())
-  OrderItem   OrderItem[]
-}
-
-model Variant {
-  id        String    @id @default(cuid())
-  product   Product   @relation(fields: [productId], references: [id])
-  productId String
-  size      ShoeSize
-  color     ShoeColor
-  stock     Int
-  price     Float
-  sku       String?
+  products Product[]
+  // categories Category[] // This relation is removed
+  orders   Order[]
 }
 
 model Category {
   id       String    @id @default(cuid())
-  name     String
-  store    Store     @relation(fields: [storeId], references: [id])
-  storeId  String
+  name     String    @unique 
   products Product[]
+
+}
+
+model Product {
+  id          String @id @default(cuid())
+  name        String
+  description String
+  price       Float
+
+  storeId String
+  store   Store  @relation(fields: [storeId], references: [id])
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id])
+
+  materialId String
+  material   Material @relation(fields: [materialId], references: [id])
+
+  variants  Variant[]
+  images    Image[]
+  OrderItem OrderItem[]
+  createdAt DateTime    @default(now())
+}
+
+model Brand {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  products Product[]
+}
+
+model Material {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  products Product[]
+}
+
+model ShoeSize {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  variants Variant[]
+}
+
+model ShoeColor {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  variants Variant[]
+}
+
+model Variant {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  stock     Int
+  price     Float
+  sku       String?
+
+  sizeId  String
+  size    ShoeSize  @relation(fields: [sizeId], references: [id])
+  colorId String
+  color   ShoeColor @relation(fields: [colorId], references: [id])
 }
 
 model Image {
@@ -100,8 +100,8 @@ model Image {
 
 model Order {
   id        String      @id @default(cuid())
-  store     Store       @relation(fields: [storeId], references: [id])
   storeId   String
+  store     Store       @relation(fields: [storeId], references: [id])
   userEmail String
   total     Float
   items     OrderItem[]
@@ -110,9 +110,9 @@ model Order {
 
 model OrderItem {
   id        String  @id @default(cuid())
-  order     Order   @relation(fields: [orderId], references: [id])
   orderId   String
-  product   Product @relation(fields: [productId], references: [id])
+  order     Order   @relation(fields: [orderId], references: [id])
   productId String
+  product   Product @relation(fields: [productId], references: [id])
   quantity  Int
 }

@@ -1,19 +1,13 @@
 "use client";
 
-import { AlertCircleIcon, ImageIcon, UploadIcon, XIcon } from "lucide-react";
 import { useRef, useState } from "react";
+import Image from "next/image";
 import { toast } from "sonner";
+import { CloudUpload, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import clsx from "clsx";
 
-interface UploadedFile {
-  id: string;
-  url: string;
-  name: string;
-  size: number;
-  type: string;
-}
-
-interface CloudinaryUploaderProps {
+interface ImageUploadProps {
   value: string[];
   onChange: (url: string) => void;
   onRemove: (url: string) => void;
@@ -24,7 +18,7 @@ const MAX_FILES = 6;
 const MAX_SIZE_MB = 5;
 const MAX_SIZE = MAX_SIZE_MB * 1024 * 1024;
 
-export const ImageUpload: React.FC<CloudinaryUploaderProps> = ({
+export const ImageUpload: React.FC<ImageUploadProps> = ({
   value,
   onChange,
   onRemove,
@@ -36,10 +30,10 @@ export const ImageUpload: React.FC<CloudinaryUploaderProps> = ({
 
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    setIsDragging(false);
     if (disabled || uploading || value.length >= MAX_FILES) return;
     const files = e.dataTransfer.files;
     await uploadFiles(files);
-    setIsDragging(false);
   };
 
   const uploadFiles = async (files: FileList | null) => {
@@ -94,7 +88,7 @@ export const ImageUpload: React.FC<CloudinaryUploaderProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-4">
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -102,7 +96,11 @@ export const ImageUpload: React.FC<CloudinaryUploaderProps> = ({
         }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
-        className="border-input data-[dragging=true]:bg-accent/50 relative flex min-h-52 flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed p-4 transition-colors"
+        className={clsx(
+            "border-input data-[dragging=true]:bg-accent/50 relative flex min-h-52 flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed p-4 transition-colors",
+            { "opacity-50 cursor-not-allowed": disabled || uploading }
+        )}
+        data-dragging={isDragging}
       >
         <input
           ref={inputRef}
@@ -110,47 +108,55 @@ export const ImageUpload: React.FC<CloudinaryUploaderProps> = ({
           accept="image/*"
           multiple
           onChange={handleFileInput}
+          disabled={disabled || uploading || value.length >= MAX_FILES}
           hidden
         />
         <div className="flex flex-col items-center justify-center px-4 py-3 text-center">
           <div className="bg-background mb-2 flex size-11 shrink-0 items-center justify-center rounded-full border">
-            <ImageIcon className="size-4 opacity-60" />
+            <CloudUpload className="size-5 opacity-60" />
           </div>
-          <p className="mb-1.5 text-sm font-medium">Drop your images here</p>
-          <p className="text-muted-foreground text-xs">
-            JPG, PNG, SVG, GIF (max. {MAX_SIZE_MB}MB)
+          <p className="mb-1.5 text-sm font-medium">
+            Drop your images here, or click to browse
           </p>
-          <Button variant="outline" className="mt-4" onClick={handleClick}>
-            <UploadIcon className="-ms-1 opacity-60" />
-            Select images
+          <p className="text-muted-foreground text-xs">
+            Up to {MAX_FILES} images, {MAX_SIZE_MB}MB per file
+          </p>
+           <Button 
+            type="button" // FIX: Prevents the button from submitting the parent form
+            variant="outline" 
+            className="mt-4" 
+            onClick={handleClick}
+            disabled={disabled || uploading || value.length >= MAX_FILES}
+            >
+            {uploading ? "Uploading..." : "Select Images"}
           </Button>
         </div>
       </div>
 
       {value.length > 0 && (
-        <div className="flex gap-2">
+        <div className="flex gap-4 flex-wrap">
           {value.map((url) => (
             <div
               key={url}
-              className="bg-background flex items-center justify-between gap-2 rounded-lg border p-2 pe-3"
+              className="relative w-24 h-24 rounded-lg overflow-hidden border"
             >
-              <div className="flex items-center gap-3 overflow-hidden">
-                <div className="bg-accent aspect-square shrink-0 rounded">
-                  <img
-                    src={url}
-                    alt="Uploaded"
-                    className="size-10 rounded-[inherit] object-cover"
-                  />
-                </div>
+              <Image
+                src={url}
+                alt="Uploaded image"
+                className="object-cover"
+                fill
+              />
+              <div className="absolute top-1 right-1 z-10">
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="destructive"
+                  className="h-6 w-6"
+                  onClick={() => onRemove(url)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="text-muted-foreground/80 hover:text-foreground -me-2 size-8 hover:bg-transparent"
-                onClick={() => onRemove(url)}
-              >
-                <XIcon />
-              </Button>
             </div>
           ))}
         </div>

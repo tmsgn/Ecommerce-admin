@@ -3,49 +3,62 @@ import prismadb from "@/lib/prismadb";
 import { ProductForm } from "./components/product-form";
 import { format } from "date-fns";
 import { ProductFormValues } from "@/types";
+import { Brand, Category, Material, ShoeColor, ShoeSize } from "@prisma/client";
 
 interface ProductPageProps {
   params: { productid: string; storeid: string };
 }
 
 const ProductPage = async ({ params }: ProductPageProps) => {
-  const [product, categories] = await Promise.all([
-    prismadb.product.findUnique({
-      where: {
-        id: params.productid,
-        storeId: params.storeid,
-      },
-      include: {
-        images: true,
-        variants: true,
-        category: true,
-      },
-    }),
-    prismadb.category.findMany({
-      where: {
-        storeId: params.storeid,
-      },
-    }),
-  ]);
+  const [product, categories, brands, materials, sizes, colors] =
+    await Promise.all([
+      params.productid === "new"
+        ? null
+        : prismadb.product.findUnique({
+            where: {
+              id: params.productid,
+              storeId: params.storeid,
+            },
+            include: {
+              images: true,
+              category: true,
+              brand: true,
+              material: true,
+              variants: {
+                include: {
+                  size: true,
+                  color: true,
+                },
+              },
+            },
+          }),
+      // FIX 1: Removed the 'where' clause as categories are now global
+      prismadb.category.findMany(),
+      prismadb.brand.findMany(),
+      prismadb.material.findMany(),
+      prismadb.shoeSize.findMany(),
+      prismadb.shoeColor.findMany(),
+    ]);
 
   const formattedProduct: ProductFormValues | null = product
     ? {
         id: product.id,
         name: product.name,
-        description: product.description,
+        // FIX 2: Handle potentially null description
+        description: product.description || "",
         price: product.price,
-        material: product.material,
-        brand: product.brand,
         categoryId: product.categoryId,
+        brandId: product.brandId,
+        materialId: product.materialId,
         categoryName: product.category.name,
         images: product.images.map((img) => ({ url: img.url })),
         variants: product.variants.map((v) => ({
           id: v.id,
-          size: v.size,
-          color: v.color,
           price: v.price,
           stock: v.stock,
           sku: v.sku,
+          sizeId: v.sizeId,
+          colorId: v.colorId,
         })),
         createdAt: format(product.createdAt, "yyyy-MM-dd"),
       }
@@ -54,7 +67,14 @@ const ProductPage = async ({ params }: ProductPageProps) => {
   return (
     <div className="flex-col">
       <div className="flex-1 space-y-4 p-8 pt-6">
-        <ProductForm initialData={formattedProduct} categories={categories} />
+        <ProductForm
+          initialData={formattedProduct}
+          categories={categories}
+          brands={brands}
+          materials={materials}
+          sizes={sizes}
+          colors={colors}
+        />
       </div>
     </div>
   );
