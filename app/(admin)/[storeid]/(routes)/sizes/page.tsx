@@ -1,8 +1,7 @@
 import SizesClient from "./client";
 import prisma from "@/lib/prismadb";
 
-export default async function SizesPage() {
-  // Fetch sizes from the database
-  const sizes = await prisma.shoeSize.findMany();
-  return <SizesClient initialSizes={sizes} />;
+export default async function SizesPage({ params }: { params: { storeid: string } }) {
+  const sizes = await prisma.shoeSize.findMany({ where: { storeId: params.storeid } });
+  return <SizesClient initialSizes={sizes} storeId={params.storeid} />;
 } 

@@ -2,23 +2,20 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
 
-export type CategoryColumn = {
+export type MaterialColumn = {
   id: string;
   name: string;
-  createdAt?: string;
-  onEdit: (category: { id: string; name: string }) => void;
+  onEdit: (material: { id: string; name: string }) => void;
   onDelete: (id: string) => void;
 };
 
-export const columns: ColumnDef<CategoryColumn>[] = [
+export const columns: ColumnDef<MaterialColumn>[] = [
   {
     accessorKey: "name",
     header: "Name",
     cell: ({ row }) => row.original.name,
   },
-
   {
     id: "actions",
     header: "Actions",

@@ -6,8 +6,10 @@ const categorySchema = z.object({
   name: z.string().min(1, "Category name is required"),
 });
 
-export async function GET() {
-  const categories = await prismadb.category.findMany({ orderBy: { name: "asc" } });
+export async function GET(req: Request) {
+  const categories = await prismadb.category.findMany({
+    orderBy: { name: "asc" },
+  });
   return NextResponse.json(categories);
 }
 
@@ -15,60 +17,11 @@ export async function POST(req: Request) {
   const body = await req.json();
   const parsed = categorySchema.safeParse(body);
   if (!parsed.success) {
-    return new NextResponse(JSON.stringify({ error: parsed.error.flatten() }), { status: 400 });
+    return NextResponse.json({ message: parsed.error.issues[0].message }, { status: 400 });
   }
-  try {
-    const category = await prismadb.category.create({ data: parsed.data });
-    return NextResponse.json(category);
-  } catch (error: any) {
-    if (error.code === 'P2002') {
-      return new NextResponse(JSON.stringify({ error: 'Category name must be unique.' }), { status: 409 });
-    }
-    return new NextResponse(JSON.stringify({ error: 'Internal error' }), { status: 500 });
-  }
+  const { name } = parsed.data;
+  const category = await prismadb.category.create({
+    data: { name },
+  });
+  return NextResponse.json(category);
 }
-
-export async function PATCH(req: Request) {
-  const body = await req.json();
-  const { id, ...rest } = body;
-  const parsed = categorySchema.safeParse(rest);
-  if (!parsed.success) {
-    return new NextResponse(JSON.stringify({ error: parsed.error.flatten() }), { status: 400 });
-  }
-  try {
-    const category = await prismadb.category.update({ where: { id }, data: parsed.data });
-    return NextResponse.json(category);
-  } catch (error: any) {
-    if (error.code === 'P2002') {
-      return new NextResponse(JSON.stringify({ error: 'Category name must be unique.' }), { status: 409 });
-    }
-    return new NextResponse(JSON.stringify({ error: 'Internal error' }), { status: 500 });
-  }
-}
-
-export async function DELETE(req: Request) {
-  const body = await req.json();
-  const { id } = body;
-  try {
-    // Check if any products are using this category
-    const productsInCategory = await prismadb.product.findFirst({
-      where: { categoryId: id },
-    });
-
-    if (productsInCategory) {
-      return new NextResponse(
-        JSON.stringify({
-          error: "This category is in use and cannot be deleted.",
-        }),
-        { status: 409 } // 409 Conflict
-      );
-    }
-
-    await prismadb.category.delete({ where: { id } });
-    return new NextResponse(null, { status: 204 });
-  } catch (error: any) {
-    return new NextResponse(JSON.stringify({ error: "Internal error" }), {
-      status: 500,
-    });
-  }
-} 

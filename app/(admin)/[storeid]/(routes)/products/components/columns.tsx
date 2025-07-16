@@ -8,11 +8,11 @@ export type ProductColumn = {
   image: string;
   name: string;
   price: string; 
-  material: string;
   brand: string;
   category: string;
   size: string;
   color: string;
+  stock: number;
   createdAt: string;
 };
 
@@ -38,6 +38,10 @@ export const columns: ColumnDef<ProductColumn>[] = [
   {
     accessorKey: "price",
     header: "Price",
+    cell: ({ row }) => {
+      const price = Number(row.original.price);
+      return price.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+    },
   },
   {
     accessorKey: "category",
@@ -48,8 +52,8 @@ export const columns: ColumnDef<ProductColumn>[] = [
     header: "Brand",
   },
   {
-    accessorKey: "material",
-    header: "Material",
+    accessorKey: "stock",
+    header: "Stock",
   },
   {
     accessorKey: "size",

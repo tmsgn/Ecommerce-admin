@@ -16,15 +16,18 @@ model Store {
   createdAt   DateTime @default(now())
 
   products Product[]
-  // categories Category[] // This relation is removed
   orders   Order[]
 }
 
 model Category {
-  id       String    @id @default(cuid())
-  name     String    @unique 
-  products Product[]
+  id        String      @id @default(cuid())
+  name      String
+  parentId  String?
+  parent    Category?   @relation("Subcategories", fields: [parentId], references: [id])
+  children  Category[]  @relation("Subcategories")
+  products  Product[]
 
+  @@unique([name, parentId])
 }
 
 model Product {

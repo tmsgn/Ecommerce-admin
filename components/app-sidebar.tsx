@@ -65,6 +65,10 @@ export async function AppSidebar({
             title: "Colors",
             url: `/${storeid}/colors`,
           },
+          {
+            title: "Materials",
+            url: `/${storeid}/materials`,
+          },
         ],
       },
       {

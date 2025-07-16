@@ -1,87 +1,109 @@
-// prisma/seed.ts
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const brandsData = [
-  { name: "NIKE" },
-  { name: "ADIDAS" },
-  { name: "PUMA" },
-  { name: "REEBOK" },
-  { name: "UNDER_ARMOUR" },
-];
-
-const materialsData = [
-  { name: "LEATHER" },
-  { name: "MESH" },
-  { name: "CANVAS" },
-  { name: "SYNTHETIC" },
-  { name: "KNIT" },
-];
-
-const shoeSizesData = [
-  { name: "US6" },
-  { name: "US7" },
-  { name: "US8" },
-  { name: "US9" },
-  { name: "US10" },
-  { name: "US11" },
-  { name: "US12" },
-];
-
-const shoeColorsData = [
-  { name: "BLACK" },
-  { name: "WHITE" },
-  { name: "RED" },
-  { name: "BLUE" },
-  { name: "GREEN" },
-  { name: "YELLOW" },
-];
-
-// Add your global categories here
-const categoriesData = [
-  { name: "Running Shoes" },
-  { name: "Basketball Shoes" },
-  { name: "Lifestyle Sneakers" },
-  { name: "Sandals & Slides" },
-  { name: "Boots" },
-];
-
 async function main() {
-  console.log(`Start seeding ...`);
+  const brands = [
+    'Nike', 'Adidas', 'Puma', 'Reebok', 'New Balance', 'Converse', 'Vans', 'Skechers', 'Fila', 'Under Armour'
+  ];
+  for (const name of brands) {
+    await prisma.brand.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
+  }
 
-  console.log(`Seeding brands...`);
-  await prisma.brand.createMany({
-    data: brandsData,
-    skipDuplicates: true,
-  });
+  const materials = [
+    'Leather', 'Canvas', 'Synthetic', 'Mesh', 'Rubber', 'Textile', 'Suede'
+  ];
+  for (const name of materials) {
+    await prisma.material.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
+  }
 
-  console.log(`Seeding materials...`);
-  await prisma.material.createMany({
-    data: materialsData,
-    skipDuplicates: true,
-  });
+  const colors = [
+    'Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Brown', 'Grey', 'Pink', 'Purple', 'Orange'
+  ];
+  for (const name of colors) {
+    await prisma.shoeColor.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
+  }
 
-  console.log(`Seeding shoe sizes...`);
-  await prisma.shoeSize.createMany({
-    data: shoeSizesData,
-    skipDuplicates: true,
-  });
+  const sizes = [
+    '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46'
+  ];
+  for (const name of sizes) {
+    await prisma.shoeSize.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
+  }
 
-  console.log(`Seeding shoe colors...`);
-  await prisma.shoeColor.createMany({
-    data: shoeColorsData,
-    skipDuplicates: true,
-  });
+  const mainCategories = [
+    { name: 'Men' },
+    { name: 'Women' },
+    { name: 'Kids' }
+  ];
+  const mainCatRecords: Record<string, { id: string }> = {};
+  for (const cat of mainCategories) {
+    let mainCat = await prisma.category.findFirst({
+      where: {
+        name: cat.name,
+        parentId: null,
+      },
+    });
 
-  // Seeding the new global categories
-  console.log(`Seeding categories...`);
-  await prisma.category.createMany({
-    data: categoriesData,
-    skipDuplicates: true,
-  });
+    if (!mainCat) {
+      mainCat = await prisma.category.create({
+        data: {
+          name: cat.name,
+        },
+      });
+    }
+    mainCatRecords[cat.name] = mainCat;
+  }
 
-  console.log(`Seeding finished.`);
+  const subcategories = [
+    { name: 'Sneakers', parent: 'Men' },
+    { name: 'Boots', parent: 'Men' },
+    { name: 'Loafers', parent: 'Men' },
+    { name: 'Sandals', parent: 'Men' },
+    { name: 'Formal', parent: 'Men' },
+    { name: 'Sneakers', parent: 'Women' },
+    { name: 'Boots', parent: 'Women' },
+    { name: 'Loafers', parent: 'Women' },
+    { name: 'Sandals', parent: 'Women' },
+    { name: 'Heels', parent: 'Women' },
+    { name: 'Sneakers', parent: 'Kids' },
+    { name: 'Boots', parent: 'Kids' },
+    { name: 'Sandals', parent: 'Kids' },
+    { name: 'Sports', parent: 'Kids' }
+  ];
+
+  for (const sub of subcategories) {
+    const parentId = mainCatRecords[sub.parent].id;
+    await prisma.category.upsert({
+      where: {
+        name_parentId: {
+          name: sub.name,
+          parentId: parentId
+        }
+      },
+      update: {},
+      create: {
+        name: sub.name,
+        parentId: parentId
+      },
+    });
+  }
 }
 
 main()

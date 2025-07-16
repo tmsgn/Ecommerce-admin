@@ -27,16 +27,17 @@ const ProductPage = async ({ params }: { params: { storeid: string } }) => {
 
   const formattedProducts = products.map((product) => {
     const firstVariant = product.variants[0];
+    const totalStock = product.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
     return {
       id: product.id,
       name: product.name,
       price: product.price.toString(),
-      material: product.material?.name || "",
       brand: product.brand?.name || "",
       category: product.category?.name || "",
       size: firstVariant?.size?.name || "",
       color: firstVariant?.color?.name || "",
       image: product.images[0]?.url || "",
+      stock: totalStock,
       createdAt: format(product.createdAt, "d MMMM yyyy"),
     };
   });

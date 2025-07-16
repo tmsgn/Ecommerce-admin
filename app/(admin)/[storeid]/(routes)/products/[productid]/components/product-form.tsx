@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Trash, Plus, X } from "lucide-react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import React from "react";
 
 import {
   Category,
@@ -431,28 +432,35 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                     name="categoryId"
                     render={({ field }) => (
                       <FormItem>
-                        {" "}
-                        <FormLabel>Category</FormLabel>{" "}
+                        <FormLabel>Category</FormLabel>
                         <Select
                           onValueChange={field.onChange}
                           value={field.value}
                           defaultValue={field.value}
                         >
-                          {" "}
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select a category" />
                             </SelectTrigger>
-                          </FormControl>{" "}
+                          </FormControl>
                           <SelectContent>
-                            {categories.map((c) => (
-                              <SelectItem key={c.id} value={c.id}>
-                                {c.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>{" "}
-                        </Select>{" "}
-                        <FormMessage />{" "}
+                            {categories
+                              .filter((main) => !main.parentId)
+                              .map((main) => (
+                                <React.Fragment key={main.id}>
+                                  <div className="px-2 py-1 text-xs text-muted-foreground">{main.name}</div>
+                                  {categories
+                                    .filter((sub) => sub.parentId === main.id)
+                                    .map((sub) => (
+                                      <SelectItem key={sub.id} value={sub.id} className="pl-6">
+                                        {sub.name}
+                                      </SelectItem>
+                                    ))}
+                                </React.Fragment>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
