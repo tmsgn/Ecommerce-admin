@@ -21,6 +21,9 @@ const productFormSchema = z.object({
       colorId: z.string().min(1, "Color is required"),
     })
   ).min(1, "At least one variant is required"),
+  isFeatured: z.boolean().optional().default(false),
+  discountType: z.enum(["PERCENT", "VALUE"]).optional().nullable(),
+  discountValue: z.coerce.number().optional().nullable(),
 });
 
 export async function POST(
@@ -49,6 +52,9 @@ export async function POST(
       brandId,
       materialId,
       variants,
+      isFeatured = false,
+      discountType = null,
+      discountValue = null,
     } = parsed.data;
 
     // --- Authentication & Validation ---
@@ -95,6 +101,9 @@ export async function POST(
           price,
           brandId,
           materialId,
+          isFeatured,
+          discountType: discountType ?? undefined,
+          discountValue,
           images: {
             create: images.map((image: { url: string }) => image),
           },
@@ -140,6 +149,46 @@ export async function POST(
     }
   } catch (error) {
     console.error("[PRODUCTS_POST]", error, typeof error === 'object' && error !== null ? JSON.stringify(error) : String(error));
+    return new NextResponse(
+      JSON.stringify({ message: "Internal error", error: error instanceof Error ? error.message : String(error) }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+export async function GET(
+  req: Request,
+  { params }: { params: { storeid: string } }
+) {
+  try {
+    if (!params.storeid) {
+      return new NextResponse("Store ID is required", { status: 400 });
+    }
+
+    const products = await prismadb.product.findMany({
+      where: { storeId: params.storeid },
+      include: {
+        images: true,
+        variants: {
+          include: {
+            size: true,
+            color: true,
+          },
+        },
+        categories: {
+          include: {
+            category: true,
+          },
+        },
+        brand: true,
+        material: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return NextResponse.json(products);
+  } catch (error) {
+    console.error("[PRODUCTS_GET]", error, typeof error === 'object' && error !== null ? JSON.stringify(error) : String(error));
     return new NextResponse(
       JSON.stringify({ message: "Internal error", error: error instanceof Error ? error.message : String(error) }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

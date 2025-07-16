@@ -67,6 +67,9 @@ const ProductPage = async ({ params }: ProductPageProps) => {
           sizeId: v.sizeId,
           colorId: v.colorId,
         })),
+        isFeatured: product.isFeatured ?? false,
+        discountType: product.discountType ?? undefined,
+        discountValue: product.discountValue ?? undefined,
         createdAt: format(product.createdAt, "yyyy-MM-dd"),
       }
     : null;

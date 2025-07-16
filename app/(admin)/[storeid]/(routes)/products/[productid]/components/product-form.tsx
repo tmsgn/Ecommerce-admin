@@ -63,6 +63,9 @@ const productFormSchema = z.object({
       colorId: z.string().min(1, "Color is required"),
     })
   ).min(1, "At least one variant is required"),
+  isFeatured: z.boolean().optional().default(false),
+  discountType: z.enum(["PERCENT", "VALUE"]).optional().nullable(),
+  discountValue: z.coerce.number().optional().nullable(),
 });
 
 type ProductFormType = z.infer<typeof productFormSchema>;
@@ -106,6 +109,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       brandId: "",
       materialId: "",
       variants: [],
+      isFeatured: false,
+      discountType: undefined,
+      discountValue: undefined,
     },
   });
 
@@ -243,6 +249,70 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={form.control}
+                    name="isFeatured"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0 p-2">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            disabled={loading}
+                          />
+                        </FormControl>
+                        <FormLabel className="mb-0">Featured Product</FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                  <div className="flex gap-4">
+                    <FormField
+                      control={form.control}
+                      name="discountType"
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormLabel>Discount Type</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value || ""}
+                            defaultValue={field.value || ""}
+                            disabled={loading}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="None" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="PERCENT">Percent (%)</SelectItem>
+                              <SelectItem value="VALUE">Value (fixed amount)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="discountValue"
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormLabel>Discount Value</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0"
+                              disabled={loading || !form.watch("discountType")}
+                              {...field}
+                              value={typeof field.value === 'number' ? field.value : field.value ? Number(field.value) : ""}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </CardContent>
               </Card>
 

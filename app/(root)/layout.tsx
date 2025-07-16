@@ -18,7 +18,7 @@ export default async function RootLayout({
     }
     
       if(store){
-        redirect(`/${store.id}`)
+        redirect(`/${store.id}/dashboard`)
     }
 
     return(

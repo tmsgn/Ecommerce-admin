@@ -40,6 +40,11 @@ export async function AppSidebar({
     ],
     navMain: [
       {
+        title: "Dashboard",
+        url: `/${storeid}/dashboard`,
+        icon: "home",
+      },
+      {
         title: "Products",
         url: `/${storeid}/products`,
         icon: "shirt",

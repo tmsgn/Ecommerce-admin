@@ -14,6 +14,11 @@ enum ParentGroup {
   KIDS
 }
 
+enum DiscountType {
+  PERCENT
+  VALUE
+}
+
 model Store {
   id          String   @id @default(cuid())
   userId      String   @unique
@@ -42,6 +47,9 @@ model Product {
   name        String
   description String
   price       Float
+  isFeatured    Boolean   @default(false)
+  discountType  DiscountType?
+  discountValue Float?
 
   storeId String
   store   Store  @relation(fields: [storeId], references: [id])

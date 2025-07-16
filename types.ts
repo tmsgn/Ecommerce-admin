@@ -22,5 +22,8 @@ export interface ProductFormValues {
     sizeId: string; // Changed from 'size'
     colorId: string; // Changed from 'color'
   }[];
+  isFeatured: boolean;
+  discountType?: 'PERCENT' | 'VALUE';
+  discountValue?: number;
   createdAt: string;
 }
