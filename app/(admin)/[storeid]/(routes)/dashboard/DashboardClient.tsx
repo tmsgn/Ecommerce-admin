@@ -78,52 +78,59 @@ const DashboardClient: React.FC<DashboardClientProps> = ({
           </CardContent>
         </Card>
       </div>
-      <div className="mb-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Sales Over Time</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={{ sales: { label: "Sales", color: "#2563eb" } }}>
-              <LineChart data={salesData} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
-                <Line type="monotone" dataKey="sales" stroke="#2563eb" strokeWidth={2} dot={{ r: 4 }} />
-              </LineChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      </div>
-      <div>
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Orders</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <table className="w-full text-sm">
-              <thead>
-                <tr>
-                  <th className="text-left">Order ID</th>
-                  <th className="text-left">Customer</th>
-                  <th className="text-left">Total</th>
-                  <th className="text-left">Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentOrders.map((order) => (
-                  <tr key={order.id}>
-                    <td>{order.id}</td>
-                    <td>{order.customer}</td>
-                    <td>${order.total.toLocaleString()}</td>
-                    <td>{order.date}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
+      {/* Chart and Orders side by side */}
+      <div className="flex flex-col md:flex-row gap-6 mb-8">
+        {/* Chart */}
+        <div className="w-full md:w-2/3">
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle>Sales Over Time</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={{ sales: { label: "Sales", color: "#2563eb" } }}>
+                <LineChart data={salesData} margin={{ top: 16, right: 16, left: 0, bottom: 0 }} width={undefined} height={300}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
+                  <Line type="monotone" dataKey="sales" stroke="#2563eb" strokeWidth={2} dot={{ r: 4 }} />
+                </LineChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </div>
+        {/* Orders */}
+        <div className="w-full md:w-1/3">
+          <Card className="h-full flex flex-col">
+            <CardHeader>
+              <CardTitle>Recent Orders</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col justify-between">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr>
+                      <th className="text-left">Order ID</th>
+                      <th className="text-left">Customer</th>
+                      <th className="text-left">Total</th>
+                      <th className="text-left">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentOrders.map((order) => (
+                      <tr key={order.id}>
+                        <td>{order.id}</td>
+                        <td>{order.customer}</td>
+                        <td>${order.total.toLocaleString()}</td>
+                        <td>{order.date}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
