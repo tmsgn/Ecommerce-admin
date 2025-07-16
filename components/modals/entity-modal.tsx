@@ -8,6 +8,7 @@ interface Field {
   label: string;
   type: string;
   required?: boolean;
+  options?: { label: string; value: string }[]; // For checkbox-group
 }
 
 interface EntityModalProps {
@@ -29,7 +30,13 @@ export const EntityModal: React.FC<EntityModalProps> = ({
 }) => {
   const [values, setValues] = useState<Record<string, any>>(() => {
     const initial: Record<string, any> = {};
-    fields.forEach(f => { initial[f.name] = ""; });
+    fields.forEach(f => {
+      if (f.type === "checkbox-group") {
+        initial[f.name] = [];
+      } else {
+        initial[f.name] = "";
+      }
+    });
     return initial;
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -37,13 +44,33 @@ export const EntityModal: React.FC<EntityModalProps> = ({
   React.useEffect(() => {
     if (open) {
       // Reset form when opened
-      setValues(fields.reduce((acc, f) => ({ ...acc, [f.name]: "" }), {}));
+      setValues(fields.reduce((acc, f) => {
+        if (f.type === "checkbox-group") {
+          acc[f.name] = [];
+        } else {
+          acc[f.name] = "";
+        }
+        return acc;
+      }, {} as Record<string, any>));
       setErrors({});
     }
   }, [open, fields]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setValues({ ...values, [e.target.name]: e.target.value });
+    const { name, type, value, checked } = e.target;
+    const field = fields.find(f => f.name === name);
+    if (field?.type === "checkbox-group") {
+      setValues(prev => {
+        const arr = Array.isArray(prev[name]) ? prev[name] : [];
+        if (checked) {
+          return { ...prev, [name]: [...arr, value] };
+        } else {
+          return { ...prev, [name]: arr.filter((v: string) => v !== value) };
+        }
+      });
+    } else {
+      setValues({ ...values, [name]: value });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,15 +97,33 @@ export const EntityModal: React.FC<EntityModalProps> = ({
           {fields.map(field => (
             <div key={field.name}>
               <label className="block text-sm font-medium mb-1" htmlFor={field.name}>{field.label}</label>
-              <Input
-                id={field.name}
-                name={field.name}
-                type={field.type}
-                value={values[field.name]}
-                onChange={handleChange}
-                required={field.required}
-                disabled={loading}
-              />
+              {field.type === "checkbox-group" && field.options ? (
+                <div className="flex gap-4">
+                  {field.options.map(opt => (
+                    <label key={opt.value} className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        name={field.name}
+                        value={opt.value}
+                        checked={values[field.name]?.includes(opt.value)}
+                        onChange={handleChange}
+                        disabled={loading}
+                      />
+                      {opt.label}
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <Input
+                  id={field.name}
+                  name={field.name}
+                  type={field.type}
+                  value={values[field.name]}
+                  onChange={handleChange}
+                  required={field.required}
+                  disabled={loading}
+                />
+              )}
               {errors[field.name] && (
                 <div className="text-xs text-red-500 mt-1">{errors[field.name]}</div>
               )}

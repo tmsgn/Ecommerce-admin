@@ -21,7 +21,7 @@ const ProductPage = async ({ params }: ProductPageProps) => {
             },
             include: {
               images: true,
-              category: true,
+              categories: { include: { category: true } },
               brand: true,
               material: true,
               variants: {
@@ -32,7 +32,6 @@ const ProductPage = async ({ params }: ProductPageProps) => {
               },
             },
           }),
-      // FIX 1: Removed the 'where' clause as categories are now global
       prismadb.category.findMany(),
       prismadb.brand.findMany(),
       prismadb.material.findMany(),
@@ -40,19 +39,27 @@ const ProductPage = async ({ params }: ProductPageProps) => {
       prismadb.shoeColor.findMany(),
     ]);
 
+  const mainCategoryIds = product?.categories
+    .map((pc: any) => pc.category)
+    .filter((cat: any) => !cat.parentId)
+    .map((cat: any) => cat.id) || [];
+  const subCategoryIds = product?.categories
+    .map((pc: any) => pc.category)
+    .filter((cat: any) => !!cat.parentId)
+    .map((cat: any) => cat.id) || [];
+
   const formattedProduct: ProductFormValues | null = product
     ? {
         id: product.id,
         name: product.name,
-        // FIX 2: Handle potentially null description
         description: product.description || "",
         price: product.price,
-        categoryId: product.categoryId,
+        mainCategoryIds,
+        subCategoryIds,
         brandId: product.brandId,
         materialId: product.materialId,
-        categoryName: product.category.name,
-        images: product.images.map((img) => ({ url: img.url })),
-        variants: product.variants.map((v) => ({
+        images: product.images.map((img: any) => ({ url: img.url })),
+        variants: product.variants.map((v: any) => ({
           id: v.id,
           price: v.price,
           stock: v.stock,

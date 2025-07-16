@@ -6,7 +6,8 @@ export interface ProductFormValues {
   name: string;
   description: string;
   price: number;
-  categoryId: string;
+  mainCategoryIds: string[]; // NEW: Multiple main categories
+  subCategoryIds: string[];  // NEW: Multiple subcategories
   brandId: string; // Changed from 'brand'
   materialId: string; // Changed from 'material'
   categoryName?: string;

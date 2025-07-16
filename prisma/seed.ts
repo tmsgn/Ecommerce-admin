@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, ParentGroup } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -48,9 +48,9 @@ async function main() {
   }
 
   const mainCategories = [
-    { name: 'Men' },
-    { name: 'Women' },
-    { name: 'Kids' }
+    { name: 'Men', parentGroups: [ParentGroup.MEN] },
+    { name: 'Women', parentGroups: [ParentGroup.WOMEN] },
+    { name: 'Kids', parentGroups: [ParentGroup.KIDS] }
   ];
   const mainCatRecords: Record<string, { id: string }> = {};
   for (const cat of mainCategories) {
@@ -65,44 +65,63 @@ async function main() {
       mainCat = await prisma.category.create({
         data: {
           name: cat.name,
+          parentGroups: cat.parentGroups,
         },
+      });
+    } else if (!mainCat.parentGroups || mainCat.parentGroups.length === 0) {
+      // Update existing main category to have correct parentGroups if missing
+      mainCat = await prisma.category.update({
+        where: { id: mainCat.id },
+        data: { parentGroups: cat.parentGroups },
       });
     }
     mainCatRecords[cat.name] = mainCat;
   }
 
-  const subcategories = [
-    { name: 'Sneakers', parent: 'Men' },
-    { name: 'Boots', parent: 'Men' },
-    { name: 'Loafers', parent: 'Men' },
-    { name: 'Sandals', parent: 'Men' },
-    { name: 'Formal', parent: 'Men' },
-    { name: 'Sneakers', parent: 'Women' },
-    { name: 'Boots', parent: 'Women' },
-    { name: 'Loafers', parent: 'Women' },
-    { name: 'Sandals', parent: 'Women' },
-    { name: 'Heels', parent: 'Women' },
-    { name: 'Sneakers', parent: 'Kids' },
-    { name: 'Boots', parent: 'Kids' },
-    { name: 'Sandals', parent: 'Kids' },
-    { name: 'Sports', parent: 'Kids' }
-  ];
+  // Subcategories for each main category
+  const subcategoriesByParent: Record<string, { name: string; parentGroups: ParentGroup[] }[]> = {
+    'Men': [
+      { name: 'Sneakers', parentGroups: [ParentGroup.MEN] },
+      { name: 'Boots', parentGroups: [ParentGroup.MEN] },
+      { name: 'Loafers', parentGroups: [ParentGroup.MEN] },
+      { name: 'Sandals', parentGroups: [ParentGroup.MEN] },
+      { name: 'Formal', parentGroups: [ParentGroup.MEN] },
+    ],
+    'Women': [
+      { name: 'Sneakers', parentGroups: [ParentGroup.WOMEN] },
+      { name: 'Boots', parentGroups: [ParentGroup.WOMEN] },
+      { name: 'Loafers', parentGroups: [ParentGroup.WOMEN] },
+      { name: 'Sandals', parentGroups: [ParentGroup.WOMEN] },
+      { name: 'Heels', parentGroups: [ParentGroup.WOMEN] },
+      { name: 'Flats', parentGroups: [ParentGroup.WOMEN] },
+    ],
+    'Kids': [
+      { name: 'Sneakers', parentGroups: [ParentGroup.KIDS] },
+      { name: 'Boots', parentGroups: [ParentGroup.KIDS] },
+      { name: 'Sandals', parentGroups: [ParentGroup.KIDS] },
+      { name: 'Sports', parentGroups: [ParentGroup.KIDS] },
+      { name: 'School Shoes', parentGroups: [ParentGroup.KIDS] },
+    ],
+  };
 
-  for (const sub of subcategories) {
-    const parentId = mainCatRecords[sub.parent].id;
-    await prisma.category.upsert({
-      where: {
-        name_parentId: {
+  for (const parentName of Object.keys(subcategoriesByParent)) {
+    const parentId = mainCatRecords[parentName].id;
+    for (const sub of subcategoriesByParent[parentName]) {
+      await prisma.category.upsert({
+        where: {
+          name_parentId: {
+            name: sub.name,
+            parentId: parentId
+          }
+        },
+        update: {},
+        create: {
           name: sub.name,
-          parentId: parentId
-        }
-      },
-      update: {},
-      create: {
-        name: sub.name,
-        parentId: parentId
-      },
-    });
+          parentId: parentId,
+          parentGroups: sub.parentGroups,
+        },
+      });
+    }
   }
 }
 

@@ -25,7 +25,7 @@ export default function CategoriesClient({ initialCategories }: CategoriesClient
   const handleAddCategory = async (values: Record<string, any>) => {
     setIsSubmitting(true);
     try {
-      const res = await axios.post("/api/categories", { name: values.name });
+      const res = await axios.post("/api/categories", { name: values.name, parentGroups: values.parentGroups });
       const newCategory = res.data;
       setCategories(prev => [...prev, newCategory]);
       toast.success("Category added");
@@ -48,7 +48,20 @@ export default function CategoriesClient({ initialCategories }: CategoriesClient
         open={modalOpen}
         onOpenChange={setModalOpen}
         title="Add Category"
-        fields={[{ name: "name", label: "Category Name", type: "text", required: true }]}
+        fields={[
+          { name: "name", label: "Category Name", type: "text", required: true },
+          {
+            name: "parentGroups",
+            label: "Parent Groups",
+            type: "checkbox-group",
+            options: [
+              { label: "Men", value: "MEN" },
+              { label: "Women", value: "WOMEN" },
+              { label: "Kids", value: "KIDS" },
+            ],
+            required: true,
+          },
+        ]}
         onSubmit={handleAddCategory}
         loading={isSubmitting}
       />

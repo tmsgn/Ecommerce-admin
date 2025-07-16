@@ -8,7 +8,8 @@ const productFormSchema = z.object({
   description: z.string().min(1, "Description is required"),
   price: z.coerce.number().min(0.01, "Price must be greater than 0"),
   images: z.array(z.object({ url: z.string().url("Invalid image URL") })).min(1, "At least one image is required"),
-  categoryId: z.string().min(1, "Category is required"),
+  mainCategoryIds: z.array(z.string()).min(1, "At least one main category"),
+  subCategoryIds: z.array(z.string()).min(1, "At least one subcategory"),
   brandId: z.string().min(1, "Brand is required"),
   materialId: z.string().min(1, "Material is required"),
   variants: z.array(
@@ -43,7 +44,8 @@ export async function POST(
       description,
       price,
       images,
-      categoryId,
+      mainCategoryIds,
+      subCategoryIds,
       brandId,
       materialId,
       variants,
@@ -57,8 +59,10 @@ export async function POST(
     if (!price) return new NextResponse("Price is required", { status: 400 });
     if (!images || !images.length)
       return new NextResponse("Images are required", { status: 400 });
-    if (!categoryId)
-      return new NextResponse("Category is required", { status: 400 });
+    if (!mainCategoryIds || !mainCategoryIds.length)
+      return new NextResponse("At least one main category is required", { status: 400 });
+    if (!subCategoryIds || !subCategoryIds.length)
+      return new NextResponse("At least one subcategory is required", { status: 400 });
     if (!brandId) return new NextResponse("Brand is required", { status: 400 });
     if (!materialId)
       return new NextResponse("Material is required", { status: 400 });
@@ -81,13 +85,14 @@ export async function POST(
 
     // --- Database Creation ---
     try {
+      const allCategoryIds = Array.from(new Set([...mainCategoryIds, ...subCategoryIds]));
+      // Create the product first
       const product = await prismadb.product.create({
         data: {
           storeId: params.storeid,
           name,
           description,
           price,
-          categoryId,
           brandId,
           materialId,
           images: {
@@ -112,7 +117,17 @@ export async function POST(
           },
         },
       });
-      return NextResponse.json(product);
+      // Create ProductCategory join records
+      await prismadb.productCategory.createMany({
+        data: allCategoryIds.map((categoryId: string) => ({ productId: product.id, categoryId })),
+        skipDuplicates: true,
+      });
+      // Fetch the product with categories
+      const productWithCategories = await prismadb.product.findUnique({
+        where: { id: product.id },
+        include: { categories: true },
+      });
+      return NextResponse.json(productWithCategories);
     } catch (error: any) {
       // Unique constraint error (duplicate name)
       if (error.code === 'P2002' && error.meta?.target?.includes('name')) {

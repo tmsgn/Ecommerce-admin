@@ -8,6 +8,12 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum ParentGroup {
+  MEN
+  WOMEN
+  KIDS
+}
+
 model Store {
   id          String   @id @default(cuid())
   userId      String   @unique
@@ -25,22 +31,20 @@ model Category {
   parentId  String?
   parent    Category?   @relation("Subcategories", fields: [parentId], references: [id])
   children  Category[]  @relation("Subcategories")
-  products  Product[]
+  products  ProductCategory[] // Many-to-many with Product via join table
+  parentGroups ParentGroup[]
 
   @@unique([name, parentId])
 }
 
 model Product {
-  id          String @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
   description String
   price       Float
 
   storeId String
   store   Store  @relation(fields: [storeId], references: [id])
-
-  categoryId String
-  category   Category @relation(fields: [categoryId], references: [id])
 
   brandId String
   brand   Brand  @relation(fields: [brandId], references: [id])
@@ -52,6 +56,8 @@ model Product {
   images    Image[]
   OrderItem OrderItem[]
   createdAt DateTime    @default(now())
+
+  categories ProductCategory[]
 }
 
 model Brand {
@@ -118,4 +124,13 @@ model OrderItem {
   productId String
   product   Product @relation(fields: [productId], references: [id])
   quantity  Int
+}
+
+model ProductCategory {
+  product   Product   @relation(fields: [productId], references: [id])
+  productId String
+  category  Category  @relation(fields: [categoryId], references: [id])
+  categoryId String
+
+  @@id([productId, categoryId])
 }

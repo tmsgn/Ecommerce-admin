@@ -6,7 +6,7 @@ export async function GET(req, { params }) {
   const { storeid, productid } = params;
   const product = await prismadb.product.findUnique({
     where: { id: productid, storeId: storeid },
-    include: { images: true, variants: true },
+    include: { images: true, variants: true, categories: { include: { category: true } } },
   });
   return NextResponse.json(product);
 }
@@ -19,12 +19,11 @@ export async function PATCH(req, { params }) {
     name,
     images,
     price,
-    categoryId,
-    size,
-    color,
-    stock,
-    material,
-    brand,
+    mainCategoryIds = [],
+    subCategoryIds = [],
+    materialId,
+    brandId,
+    variants = [],
   } = body;
   // Update product
   const product = await prismadb.product.update({
@@ -32,15 +31,25 @@ export async function PATCH(req, { params }) {
     data: {
       name,
       price,
-      material,
-      brand,
-      categoryId,
+      materialId,
+      brandId,
       images: { deleteMany: {}, create: images },
-      variants: { deleteMany: {}, create: [{ size, color, stock, price }] },
+      variants: { deleteMany: {}, create: variants },
     },
-    include: { images: true, variants: true },
   });
-  return NextResponse.json(product);
+  // Update categories (remove all, then add new)
+  await prismadb.productCategory.deleteMany({ where: { productId: productid } });
+  const allCategoryIds = Array.from(new Set([...mainCategoryIds, ...subCategoryIds]));
+  await prismadb.productCategory.createMany({
+    data: allCategoryIds.map((categoryId) => ({ productId: productid, categoryId })),
+    skipDuplicates: true,
+  });
+  // Return updated product with categories
+  const updatedProduct = await prismadb.product.findUnique({
+    where: { id: productid },
+    include: { images: true, variants: true, categories: { include: { category: true } } },
+  });
+  return NextResponse.json(updatedProduct);
 }
 
 // DELETE: Delete a product

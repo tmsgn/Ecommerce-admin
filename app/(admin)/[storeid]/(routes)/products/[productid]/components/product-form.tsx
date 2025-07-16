@@ -43,13 +43,15 @@ import {
 import { AlertModal } from "@/components/modals/alert-modal";
 import { ImageUpload } from "@/components/image-uploader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const productFormSchema = z.object({
   name: z.string().min(1, "Product name is required"),
   description: z.string().min(1, "Description is required"),
   price: z.coerce.number().min(0.01, "Price must be greater than 0"),
   images: z.array(z.object({ url: z.string().url("Invalid image URL") })).min(1, "At least one image is required"),
-  categoryId: z.string().min(1, "Category is required"),
+  mainCategoryIds: z.array(z.string()).min(1, "At least one main category"),
+  subCategoryIds: z.array(z.string()).min(1, "At least one subcategory"),
   brandId: z.string().min(1, "Brand is required"),
   materialId: z.string().min(1, "Material is required"),
   variants: z.array(
@@ -99,7 +101,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       description: "",
       price: 0,
       images: [],
-      categoryId: "",
+      mainCategoryIds: [],
+      subCategoryIds: [],
       brandId: "",
       materialId: "",
       variants: [],
@@ -429,37 +432,54 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 <CardContent className="space-y-4">
                   <FormField
                     control={form.control}
-                    name="categoryId"
+                    name="mainCategoryIds"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a category" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {categories
-                              .filter((main) => !main.parentId)
-                              .map((main) => (
-                                <React.Fragment key={main.id}>
-                                  <div className="px-2 py-1 text-xs text-muted-foreground">{main.name}</div>
-                                  {categories
-                                    .filter((sub) => sub.parentId === main.id)
-                                    .map((sub) => (
-                                      <SelectItem key={sub.id} value={sub.id} className="pl-6">
-                                        {sub.name}
-                                      </SelectItem>
-                                    ))}
-                                </React.Fragment>
-                              ))}
-                          </SelectContent>
-                        </Select>
+                        <FormLabel>Main Categories</FormLabel>
+                        <div className="flex flex-col gap-2">
+                          {categories.filter((main) => !main.parentId).map((main) => (
+                            <label key={main.id} className="flex items-center gap-2">
+                              <Checkbox
+                                checked={field.value?.includes(main.id)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    field.onChange([...field.value, main.id]);
+                                  } else {
+                                    field.onChange(field.value.filter((id) => id !== main.id));
+                                  }
+                                }}
+                              />
+                              {main.name}
+                            </label>
+                          ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="subCategoryIds"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Subcategories</FormLabel>
+                        <div className="flex flex-col gap-2">
+                          {categories.filter((sub) => sub.parentId && form.watch("mainCategoryIds").includes(sub.parentId)).map((sub) => (
+                            <label key={sub.id} className="flex items-center gap-2">
+                              <Checkbox
+                                checked={field.value?.includes(sub.id)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    field.onChange([...field.value, sub.id]);
+                                  } else {
+                                    field.onChange(field.value.filter((id) => id !== sub.id));
+                                  }
+                                }}
+                              />
+                              {sub.name}
+                            </label>
+                          ))}
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -473,8 +493,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                         <FormLabel>Brand</FormLabel>{" "}
                         <Select
                           onValueChange={field.onChange}
-                          value={field.value}
-                          defaultValue={field.value}
+                          value={field.value || ""}
+                          defaultValue={field.value || ""}
                         >
                           {" "}
                           <FormControl>
@@ -503,8 +523,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                         <FormLabel>Material</FormLabel>{" "}
                         <Select
                           onValueChange={field.onChange}
-                          value={field.value}
-                          defaultValue={field.value}
+                          value={field.value || ""}
+                          defaultValue={field.value || ""}
                         >
                           {" "}
                           <FormControl>

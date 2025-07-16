@@ -9,7 +9,7 @@ const ProductPage = async ({ params }: { params: { storeid: string } }) => {
       storeId: params.storeid,
     },
     include: {
-      category: true,
+      categories: { include: { category: true } },
       brand: true,
       material: true,
       variants: {
@@ -28,12 +28,13 @@ const ProductPage = async ({ params }: { params: { storeid: string } }) => {
   const formattedProducts = products.map((product) => {
     const firstVariant = product.variants[0];
     const totalStock = product.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+    const categoryNames = product.categories.map((pc: any) => pc.category.name).join(", ");
     return {
       id: product.id,
       name: product.name,
       price: product.price.toString(),
       brand: product.brand?.name || "",
-      category: product.category?.name || "",
+      category: categoryNames,
       size: firstVariant?.size?.name || "",
       color: firstVariant?.color?.name || "",
       image: product.images[0]?.url || "",
