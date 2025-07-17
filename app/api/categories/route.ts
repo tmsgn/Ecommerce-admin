@@ -1,29 +1,61 @@
+export async function PATCH(req: Request) {
+  const body = await req.json();
+  const schema = z.object({
+    id: z.string().min(1, "Subcategory id is required"),
+    name: z.string().min(1, "Subcategory name is required"),
+    mainCategories: z
+      .array(z.enum(["MEN", "WOMEN", "KIDS"]))
+      .min(1, "At least one main category is required"),
+  });
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { message: parsed.error.issues[0].message },
+      { status: 400 }
+    );
+  }
+  const { id, name, mainCategories } = parsed.data;
+  const subcategory = await prismadb.subcategory.update({
+    where: { id },
+    data: {
+      name,
+      mainCategories,
+    },
+  });
+  return NextResponse.json(subcategory);
+}
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { z } from "zod";
 
-const categorySchema = z.object({
-  name: z.string().min(1, "Category name is required"),
-  parentGroups: z.array(z.enum(["MEN", "WOMEN", "KIDS"])).min(1, "At least one parent group is required"),
-});
-
-export async function GET(req: Request) {
-  const categories = await prismadb.category.findMany({
-    where: { parentId: null }, 
+export async function GET() {
+  const subcategories = await prismadb.subcategory.findMany({
     orderBy: { name: "asc" },
-    include: { children: true }, 
   });
-  return NextResponse.json(categories);
+  return NextResponse.json(subcategories);
 }
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const parsed = categorySchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ message: parsed.error.issues[0].message }, { status: 400 });
-  }
-  const { name, parentGroups } = parsed.data;
-  const category = await prismadb.category.create({
-    data: { name },
+  const schema = z.object({
+    name: z.string().min(1, "Subcategory name is required"),
+    mainCategories: z
+      .array(z.enum(["MEN", "WOMEN", "KIDS"]))
+      .min(1, "At least one main category is required"),
   });
-  return NextResponse.json(category);}
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { message: parsed.error.issues[0].message },
+      { status: 400 }
+    );
+  }
+  const { name, mainCategories } = parsed.data;
+  const subcategory = await prismadb.subcategory.create({
+    data: {
+      name,
+      mainCategories,
+    },
+  });
+  return NextResponse.json(subcategory);
+}

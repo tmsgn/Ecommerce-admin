@@ -1,70 +1,117 @@
 "use client";
-import React, { useEffect, useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { toast } from "sonner";
 import { DataTable } from "@/components/ui/data-table";
-import { columns, CategoryColumn } from "./components/columns";
+import { getColumns } from "./components/columns";
 import { EntityModal } from "@/components/modals/entity-modal";
+import { toast } from "sonner";
 import axios from "axios";
 
 interface CategoriesClientProps {
-  initialCategories: any[];
+  initialCategories: {
+    id: string;
+    name: string;
+    parentGroups: string[];
+  }[];
 }
 
-export default function CategoriesClient({ initialCategories }: CategoriesClientProps) {
-  const [categories, setCategories] = useState<any[]>([]);
+export default function CategoriesClient({
+  initialCategories,
+}: CategoriesClientProps) {
+  const [categories, setCategories] = useState(initialCategories);
   const [modalOpen, setModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mainCategories, setMainCategories] = useState<
+    { label: string; value: string }[]
+  >([]);
+  const [editData, setEditData] = useState<any | null>(null);
 
   useEffect(() => {
-    setCategories(initialCategories);
-  }, [initialCategories]);
+    axios.get("/api/main-categories").then((res) => {
+      setMainCategories(res.data);
+    });
+  }, []);
 
   const handleAddCategory = async (values: Record<string, any>) => {
     setIsSubmitting(true);
     try {
-      const res = await axios.post("/api/categories", { name: values.name, parentGroups: values.parentGroups });
-      const newCategory = res.data;
-      setCategories(prev => [...prev, newCategory]);
-      toast.success("Category added");
+      if (editData) {
+        const res = await axios.patch("/api/categories", {
+          id: editData.id,
+          name: values.name,
+          mainCategories: values.mainCategories,
+        });
+        setCategories((prev) =>
+          prev.map((cat) => (cat.id === editData.id ? res.data : cat))
+        );
+        toast.success("Subcategory updated");
+      } else {
+        const res = await axios.post("/api/categories", {
+          name: values.name,
+          mainCategories: values.mainCategories,
+        });
+        setCategories((prev) => [...prev, res.data]);
+        toast.success("Subcategory added");
+      }
       setModalOpen(false);
+      setEditData(null);
     } catch (err: any) {
-      toast.error(err.response?.data?.message || err.message || "Error adding category");
+      toast.error(
+        err.response?.data?.message || err.message || "Error saving subcategory"
+      );
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleEdit = (row: any) => {
+    setEditData(row);
+    setModalOpen(true);
+  };
+
+  const handleDelete = async (row: any) => {
+    // Implement delete logic here if needed
+    toast("Delete not implemented");
   };
 
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Categories</h1>
-        <Button onClick={() => setModalOpen(true)}>Add Category</Button>
+        <Button onClick={() => setModalOpen(true)}>Add Subcategory</Button>
       </div>
-      <DataTable searchKey="name" columns={columns} data={categories} />
+      <DataTable
+        searchKey="name"
+        columns={getColumns({ onEdit: handleEdit, onDelete: handleDelete })}
+        data={categories}
+      />
       <EntityModal
         open={modalOpen}
-        onOpenChange={setModalOpen}
-        title="Add Category"
+        onOpenChange={(open) => {
+          setModalOpen(open);
+          if (!open) setEditData(null);
+        }}
+        title={editData ? "Edit Subcategory" : "Add Subcategory"}
         fields={[
-          { name: "name", label: "Category Name", type: "text", required: true },
           {
-            name: "parentGroups",
-            label: "Parent Groups",
+            name: "name",
+            label: "Subcategory Name",
+            type: "text",
+            required: true,
+          },
+          {
+            name: "mainCategories",
+            label: "Main Categories",
             type: "checkbox-group",
-            options: [
-              { label: "Men", value: "MEN" },
-              { label: "Women", value: "WOMEN" },
-              { label: "Kids", value: "KIDS" },
-            ],
+            options: mainCategories,
             required: true,
           },
         ]}
+        initialValues={editData ? { name: editData.name, mainCategories: editData.parentGroups } : {}}
         onSubmit={handleAddCategory}
         loading={isSubmitting}
       />
     </div>
   );
-} 
+}

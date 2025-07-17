@@ -9,7 +9,7 @@ const ProductPage = async ({ params }: { params: { storeid: string } }) => {
       storeId: params.storeid,
     },
     include: {
-      categories: { include: { category: true } },
+      subcategories: true,
       brand: true,
       material: true,
       variants: {
@@ -25,19 +25,27 @@ const ProductPage = async ({ params }: { params: { storeid: string } }) => {
     },
   });
 
-  const formattedProducts = products.map((product) => {
-    const firstVariant = product.variants[0];
-    const totalStock = product.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
-    const categoryNames = product.categories.map((pc: any) => pc.category.name).join(", ");
+  const formattedProducts = products.map((product: any) => {
+    const firstVariant = product.variants?.[0];
+    const totalStock = (product.variants || []).reduce((sum: number, v: any) => sum + (v.stock || 0), 0);
+    // mainCategories is an enum array
+    const mainCategories = Array.isArray(product.mainCategories)
+      ? product.mainCategories.map((cat: string) => cat.charAt(0) + cat.slice(1).toLowerCase()).join(", ")
+      : "";
+    // subcategories is an array of objects
+    const subCategories = Array.isArray(product.subcategories)
+      ? product.subcategories.map((sub: any) => sub.name).join(", ")
+      : "";
     return {
       id: product.id,
       name: product.name,
-      price: product.price.toString(),
+      price: product.price?.toString() || "",
       brand: product.brand?.name || "",
-      category: categoryNames,
+      mainCategories,
+      subCategories,
       size: firstVariant?.size?.name || "",
       color: firstVariant?.color?.name || "",
-      image: product.images[0]?.url || "",
+      image: product.images?.[0]?.url || "",
       stock: totalStock,
       createdAt: format(product.createdAt, "d MMMM yyyy"),
     };

@@ -11,7 +11,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import React from "react";
 
 import {
-  Category,
   Brand,
   Material,
   ShoeSize,
@@ -72,7 +71,8 @@ type ProductFormType = z.infer<typeof productFormSchema>;
 
 interface ProductFormProps {
   initialData: ProductFormType | null;
-  categories: Category[];
+  mainCategories: { label: string; value: string }[];
+  subcategories: { id: string; name: string; mainCategories: string[] }[];
   brands: Brand[];
   materials: Material[];
   sizes: ShoeSize[];
@@ -81,7 +81,8 @@ interface ProductFormProps {
 
 export const ProductForm: React.FC<ProductFormProps> = ({
   initialData,
-  categories,
+  mainCategories,
+  subcategories,
   brands,
   materials,
   sizes,
@@ -507,19 +508,19 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                       <FormItem>
                         <FormLabel>Main Categories</FormLabel>
                         <div className="flex flex-col gap-2">
-                          {categories.filter((main) => !main.parentId).map((main) => (
-                            <label key={main.id} className="flex items-center gap-2">
+                          {mainCategories.map((main) => (
+                            <label key={main.value} className="flex items-center gap-2">
                               <Checkbox
-                                checked={field.value?.includes(main.id)}
+                                checked={field.value?.includes(main.value)}
                                 onCheckedChange={(checked) => {
                                   if (checked) {
-                                    field.onChange([...field.value, main.id]);
+                                    field.onChange([...field.value, main.value]);
                                   } else {
-                                    field.onChange(field.value.filter((id) => id !== main.id));
+                                    field.onChange(field.value.filter((id: string) => id !== main.value));
                                   }
                                 }}
                               />
-                              {main.name}
+                              {main.label}
                             </label>
                           ))}
                         </div>
@@ -534,21 +535,23 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                       <FormItem>
                         <FormLabel>Subcategories</FormLabel>
                         <div className="flex flex-col gap-2">
-                          {categories.filter((sub) => sub.parentId && form.watch("mainCategoryIds").includes(sub.parentId)).map((sub) => (
-                            <label key={sub.id} className="flex items-center gap-2">
-                              <Checkbox
-                                checked={field.value?.includes(sub.id)}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    field.onChange([...field.value, sub.id]);
-                                  } else {
-                                    field.onChange(field.value.filter((id) => id !== sub.id));
-                                  }
-                                }}
-                              />
-                              {sub.name}
-                            </label>
-                          ))}
+                          {subcategories
+                            .filter((sub) => sub.mainCategories.some((main: string) => form.watch("mainCategoryIds").includes(main)))
+                            .map((sub) => (
+                              <label key={sub.id} className="flex items-center gap-2">
+                                <Checkbox
+                                  checked={field.value?.includes(sub.id)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      field.onChange([...field.value, sub.id]);
+                                    } else {
+                                      field.onChange(field.value.filter((id: string) => id !== sub.id));
+                                    }
+                                  }}
+                                />
+                                {sub.name}
+                              </label>
+                            ))}
                         </div>
                         <FormMessage />
                       </FormItem>

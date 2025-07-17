@@ -1,23 +1,30 @@
 "use client";
 
-import React from "react";
+import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
-import { ChartContainer } from "@/components/ui/chart";
-import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-import { ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { LineChart, Line, XAxis, CartesianGrid } from "recharts";
+import { ArrowUpRight, ArrowDownRight, Package, Warehouse } from "lucide-react";
+
+const chartConfig = {
+  sales: { label: "Sales", color: "var(--chart-1)" },
+  orders: { label: "Orders", color: "var(--chart-2)" },
+};
 
 interface Order {
   id: string;
   customer: string;
   total: number;
   date: string;
+  status: "Completed" | "Pending" | "Shipped";
 }
 
 interface SalesDataPoint {
   date: string;
   sales: number;
+  orders: number;
 }
 
 interface DashboardClientProps {
@@ -41,6 +48,15 @@ const DashboardClient: React.FC<DashboardClientProps> = ({
   const salesChangePercent = previousSales > 0 ? (salesChange / previousSales) * 100 : 0;
   const salesChangePositive = salesChangePercent >= 0;
 
+  const [activeChart, setActiveChart] = React.useState<"sales" | "orders">("sales");
+  const total = React.useMemo(
+    () => ({
+      sales: salesData.reduce((acc, curr) => acc + curr.sales, 0),
+      orders: salesData.reduce((acc, curr) => acc + curr.orders, 0),
+    }),
+    [salesData]
+  );
+
   return (
     <div className="p-8">
       <Heading title="Dashboard" description="Overview of your store's performance" />
@@ -48,7 +64,10 @@ const DashboardClient: React.FC<DashboardClientProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Card>
           <CardHeader>
-            <CardTitle>Total Sales</CardTitle>
+            <div className="flex items-center gap-2">
+              <ArrowUpRight className="h-5 w-5 text-muted-foreground" />
+              <CardTitle>Total Sales</CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
@@ -63,7 +82,10 @@ const DashboardClient: React.FC<DashboardClientProps> = ({
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Total Products</CardTitle>
+            <div className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-muted-foreground" />
+              <CardTitle>Total Products</CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
             <span className="text-2xl font-bold">{totalProducts}</span>
@@ -71,7 +93,10 @@ const DashboardClient: React.FC<DashboardClientProps> = ({
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Total Stock</CardTitle>
+            <div className="flex items-center gap-2">
+              <Warehouse className="h-5 w-5 text-muted-foreground" />
+              <CardTitle>Total Stock</CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
             <span className="text-2xl font-bold">{totalStock}</span>
@@ -86,14 +111,44 @@ const DashboardClient: React.FC<DashboardClientProps> = ({
             <CardHeader>
               <CardTitle>Sales Over Time</CardTitle>
             </CardHeader>
+            {/* Toggle for sales/orders */}
+            <div className="flex">
+              {(["sales", "orders"] as const).map((key) => (
+                <button
+                  key={key}
+                  data-active={activeChart === key}
+                  className={
+                    "data-[active=true]:bg-muted/50 flex-1 px-4 py-2 border-t even:border-l text-left" +
+                    (activeChart === key ? " bg-muted/50" : "")
+                  }
+                  onClick={() => setActiveChart(key)}
+                >
+                  <span className="text-muted-foreground text-xs">{chartConfig[key].label}</span>
+                  <span className="text-lg font-bold block">{total[key].toLocaleString()}</span>
+                </button>
+              ))}
+            </div>
             <CardContent>
-              <ChartContainer config={{ sales: { label: "Sales", color: "#2563eb" } }}>
-                <LineChart data={salesData} margin={{ top: 16, right: 16, left: 0, bottom: 0 }} width={undefined} height={300}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
-                  <Line type="monotone" dataKey="sales" stroke="#2563eb" strokeWidth={2} dot={{ r: 4 }} />
+              <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full">
+                <LineChart data={salesData} margin={{ left: 12, right: 12 }}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} minTickGap={32} />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        className="w-[150px]"
+                        nameKey={activeChart}
+                        labelFormatter={(value) => value}
+                      />
+                    }
+                  />
+                  <Line
+                    dataKey={activeChart}
+                    type="monotone"
+                    stroke={`var(--color-${activeChart})`}
+                    strokeWidth={2}
+                    dot={false}
+                  />
                 </LineChart>
               </ChartContainer>
             </CardContent>
@@ -107,26 +162,33 @@ const DashboardClient: React.FC<DashboardClientProps> = ({
             </CardHeader>
             <CardContent className="flex-1 flex flex-col justify-between">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr>
-                      <th className="text-left">Order ID</th>
-                      <th className="text-left">Customer</th>
-                      <th className="text-left">Total</th>
-                      <th className="text-left">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentOrders.map((order) => (
-                      <tr key={order.id}>
-                        <td>{order.id}</td>
-                        <td>{order.customer}</td>
-                        <td>${order.total.toLocaleString()}</td>
-                        <td>{order.date}</td>
+                {recentOrders && recentOrders.length > 0 ?  (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr>
+                        <th className="text-left">User</th>
+                        <th className="text-left">Total</th>
+                        <th className="text-left">Date</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {recentOrders.map((order) => (
+                        <tr key={order.id} className="border-b last:border-b-0 hover:bg-muted/30 transition-colors">
+                          <td className="py-2">
+                            <button
+                              className="rounded-full bg-primary/10 text-primary flex items-center justify-center w-9 h-9 font-bold text-base shadow-sm hover:bg-primary/20 transition-all"
+                              title={order.customer}
+                            >
+                              {order.customer?.charAt(0)?.toUpperCase() || "?"}
+                            </button>
+                          </td>
+                          <td className="py-2 font-semibold">${order.total.toLocaleString()}</td>
+                          <td className="py-2 text-muted-foreground">{order.date}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : <h1 className="text-center text-muted-foreground py-8">No orders</h1>}
               </div>
             </CardContent>
           </Card>

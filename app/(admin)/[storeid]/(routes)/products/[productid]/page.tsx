@@ -3,14 +3,22 @@ import prismadb from "@/lib/prismadb";
 import { ProductForm } from "./components/product-form";
 import { format } from "date-fns";
 import { ProductFormValues } from "@/types";
-import { Brand, Category, Material, ShoeColor, ShoeSize } from "@prisma/client";
+import { Brand, Material, ShoeColor, ShoeSize, MainCategory } from "@prisma/client";
 
 interface ProductPageProps {
   params: { productid: string; storeid: string };
 }
 
 const ProductPage = async ({ params }: ProductPageProps) => {
-  const [product, categories, brands, materials, sizes, colors] =
+  // Get main categories from enum
+  const mainCategories = Object.values(MainCategory).map((value) => ({
+    label: value.charAt(0) + value.slice(1).toLowerCase(),
+    value,
+  }));
+  // Get subcategories from database
+  const subcategories = await prismadb.subcategory.findMany({ orderBy: { name: "asc" } });
+
+  const [product, brands, materials, sizes, colors] =
     await Promise.all([
       params.productid === "new"
         ? null
@@ -21,7 +29,7 @@ const ProductPage = async ({ params }: ProductPageProps) => {
             },
             include: {
               images: true,
-              categories: { include: { category: true } },
+              subcategories: true,
               brand: true,
               material: true,
               variants: {
@@ -32,21 +40,16 @@ const ProductPage = async ({ params }: ProductPageProps) => {
               },
             },
           }),
-      prismadb.category.findMany(),
       prismadb.brand.findMany(),
       prismadb.material.findMany(),
       prismadb.shoeSize.findMany(),
       prismadb.shoeColor.findMany(),
     ]);
 
-  const mainCategoryIds = product?.categories
-    .map((pc: any) => pc.category)
-    .filter((cat: any) => !cat.parentId)
-    .map((cat: any) => cat.id) || [];
-  const subCategoryIds = product?.categories
-    .map((pc: any) => pc.category)
-    .filter((cat: any) => !!cat.parentId)
-    .map((cat: any) => cat.id) || [];
+  // mainCategoryIds from product.mainCategories (enum array)
+  const mainCategoryIds = product?.mainCategories || [];
+  // subCategoryIds from product.subcategories (relation)
+  const subCategoryIds = product?.subcategories?.map((sub: any) => sub.id) || [];
 
   const formattedProduct: ProductFormValues | null = product
     ? {
@@ -79,7 +82,8 @@ const ProductPage = async ({ params }: ProductPageProps) => {
       <div className="flex-1 space-y-4 p-8 pt-6">
         <ProductForm
           initialData={formattedProduct}
-          categories={categories}
+          mainCategories={mainCategories}
+          subcategories={subcategories}
           brands={brands}
           materials={materials}
           sizes={sizes}

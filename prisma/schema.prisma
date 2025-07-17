@@ -8,7 +8,7 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum ParentGroup {
+enum MainCategory {
   MEN
   WOMEN
   KIDS
@@ -19,6 +19,14 @@ enum DiscountType {
   VALUE
 }
 
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
 model Store {
   id          String   @id @default(cuid())
   userId      String   @unique
@@ -27,27 +35,15 @@ model Store {
   createdAt   DateTime @default(now())
 
   products Product[]
-  orders   Order[]
-}
-
-model Category {
-  id        String      @id @default(cuid())
-  name      String
-  parentId  String?
-  parent    Category?   @relation("Subcategories", fields: [parentId], references: [id])
-  children  Category[]  @relation("Subcategories")
-  products  ProductCategory[] // Many-to-many with Product via join table
-  parentGroups ParentGroup[]
-
-  @@unique([name, parentId])
+  orders   Order[] @relation("OrderToStore")
 }
 
 model Product {
-  id          String   @id @default(cuid())
-  name        String
-  description String
-  price       Float
-  isFeatured    Boolean   @default(false)
+  id            String        @id @default(cuid())
+  name          String
+  description   String
+  price         Float
+  isFeatured    Boolean       @default(false)
   discountType  DiscountType?
   discountValue Float?
 
@@ -65,7 +61,15 @@ model Product {
   OrderItem OrderItem[]
   createdAt DateTime    @default(now())
 
-  categories ProductCategory[]
+  mainCategories MainCategory[] 
+  subcategories  Subcategory[]  @relation("ProductSubcategories")
+}
+
+model Subcategory {
+  id             String         @id @default(cuid())
+  name           String
+  mainCategories MainCategory[] 
+  products       Product[]      @relation("ProductSubcategories")
 }
 
 model Brand {
@@ -116,29 +120,28 @@ model Image {
 }
 
 model Order {
-  id        String      @id @default(cuid())
-  storeId   String
-  store     Store       @relation(fields: [storeId], references: [id])
-  userEmail String
-  total     Float
-  items     OrderItem[]
-  createdAt DateTime    @default(now())
+  id String @id @default(uuid())
+  storeId String
+  store Store @relation("OrderToStore",fields: [storeId], references: [id])
+  orderItems OrderItem[]
+  isPaid Boolean @default(false)
+  phone String @default("")
+  address String @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  status OrderStatus @default(PENDING)
+  paymentId String?
+  paymentMethod String?
+  transactionId String?
+  notes String?
+  total Float @default(0)
 }
 
 model OrderItem {
-  id        String  @id @default(cuid())
-  orderId   String
-  order     Order   @relation(fields: [orderId], references: [id])
+  id String @id @default(uuid())
+  orderId String
+  order Order @relation(fields: [orderId], references: [id])
   productId String
-  product   Product @relation(fields: [productId], references: [id])
-  quantity  Int
-}
-
-model ProductCategory {
-  product   Product   @relation(fields: [productId], references: [id])
-  productId String
-  category  Category  @relation(fields: [categoryId], references: [id])
-  categoryId String
-
-  @@id([productId, categoryId])
+  product Product @relation(fields: [productId], references: [id])
+  priceAtOrder Float?
 }

@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -11,30 +17,32 @@ interface Field {
   options?: { label: string; value: string }[]; // For checkbox-group
 }
 
-interface EntityModalProps {
+export interface EntityModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
   fields: Field[];
   onSubmit: (values: Record<string, any>) => Promise<void> | void;
   loading?: boolean;
+  initialValues?: Record<string, any>;
 }
 
-export const EntityModal: React.FC<EntityModalProps> = ({
+export function EntityModal({
   open,
   onOpenChange,
   title,
   fields,
   onSubmit,
   loading = false,
-}) => {
+  initialValues = {},
+}: EntityModalProps) {
   const [values, setValues] = useState<Record<string, any>>(() => {
     const initial: Record<string, any> = {};
-    fields.forEach(f => {
+    fields.forEach((f) => {
       if (f.type === "checkbox-group") {
-        initial[f.name] = [];
+        initial[f.name] = initialValues[f.name] || [];
       } else {
-        initial[f.name] = "";
+        initial[f.name] = initialValues[f.name] || "";
       }
     });
     return initial;
@@ -43,24 +51,26 @@ export const EntityModal: React.FC<EntityModalProps> = ({
 
   React.useEffect(() => {
     if (open) {
-      // Reset form when opened
-      setValues(fields.reduce((acc, f) => {
-        if (f.type === "checkbox-group") {
-          acc[f.name] = [];
-        } else {
-          acc[f.name] = "";
-        }
-        return acc;
-      }, {} as Record<string, any>));
+      // Reset form when opened, use initialValues if provided
+      setValues(
+        fields.reduce((acc, f) => {
+          if (f.type === "checkbox-group") {
+            acc[f.name] = initialValues[f.name] || [];
+          } else {
+            acc[f.name] = initialValues[f.name] || "";
+          }
+          return acc;
+        }, {} as Record<string, any>)
+      );
       setErrors({});
     }
-  }, [open, fields]);
+  }, [open, fields, initialValues]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, type, value, checked } = e.target;
-    const field = fields.find(f => f.name === name);
+    const field = fields.find((f) => f.name === name);
     if (field?.type === "checkbox-group") {
-      setValues(prev => {
+      setValues((prev) => {
         const arr = Array.isArray(prev[name]) ? prev[name] : [];
         if (checked) {
           return { ...prev, [name]: [...arr, value] };
@@ -77,7 +87,7 @@ export const EntityModal: React.FC<EntityModalProps> = ({
     e.preventDefault();
     // Simple required validation
     const newErrors: Record<string, string> = {};
-    fields.forEach(f => {
+    fields.forEach((f) => {
       if (f.required && !values[f.name]) {
         newErrors[f.name] = `${f.label} is required`;
       }
@@ -94,12 +104,17 @@ export const EntityModal: React.FC<EntityModalProps> = ({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {fields.map(field => (
+          {fields.map((field) => (
             <div key={field.name}>
-              <label className="block text-sm font-medium mb-1" htmlFor={field.name}>{field.label}</label>
+              <label
+                className="block text-sm font-medium mb-1"
+                htmlFor={field.name}
+              >
+                {field.label}
+              </label>
               {field.type === "checkbox-group" && field.options ? (
                 <div className="flex gap-4">
-                  {field.options.map(opt => (
+                  {field.options.map((opt) => (
                     <label key={opt.value} className="flex items-center gap-1">
                       <input
                         type="checkbox"
@@ -125,12 +140,19 @@ export const EntityModal: React.FC<EntityModalProps> = ({
                 />
               )}
               {errors[field.name] && (
-                <div className="text-xs text-red-500 mt-1">{errors[field.name]}</div>
+                <div className="text-xs text-red-500 mt-1">
+                  {errors[field.name]}
+                </div>
               )}
             </div>
           ))}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
@@ -141,4 +163,4 @@ export const EntityModal: React.FC<EntityModalProps> = ({
       </DialogContent>
     </Dialog>
   );
-}; 
+}

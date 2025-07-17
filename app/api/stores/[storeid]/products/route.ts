@@ -91,8 +91,6 @@ export async function POST(
 
     // --- Database Creation ---
     try {
-      const allCategoryIds = Array.from(new Set([...mainCategoryIds, ...subCategoryIds]));
-      // Create the product first
       const product = await prismadb.product.create({
         data: {
           storeId: params.storeid,
@@ -104,6 +102,10 @@ export async function POST(
           isFeatured,
           discountType: discountType ?? undefined,
           discountValue,
+          mainCategories: mainCategoryIds as any, // as MainCategory[]
+          subcategories: {
+            connect: subCategoryIds.map((id: string) => ({ id })),
+          },
           images: {
             create: images.map((image: { url: string }) => image),
           },
@@ -127,16 +129,13 @@ export async function POST(
         },
       });
       // Create ProductCategory join records
-      await prismadb.productCategory.createMany({
-        data: allCategoryIds.map((categoryId: string) => ({ productId: product.id, categoryId })),
-        skipDuplicates: true,
-      });
-      // Fetch the product with categories
-      const productWithCategories = await prismadb.product.findUnique({
+      // (Removed: productCategory join logic, as it does not exist in the schema)
+      // Fetch the product with subcategories
+      const productWithSubcategories = await prismadb.product.findUnique({
         where: { id: product.id },
-        include: { categories: true },
+        include: { subcategories: true },
       });
-      return NextResponse.json(productWithCategories);
+      return NextResponse.json(productWithSubcategories);
     } catch (error: any) {
       // Unique constraint error (duplicate name)
       if (error.code === 'P2002' && error.meta?.target?.includes('name')) {
@@ -175,11 +174,7 @@ export async function GET(
             color: true,
           },
         },
-        categories: {
-          include: {
-            category: true,
-          },
-        },
+        subcategories: true,
         brand: true,
         material: true,
       },

@@ -9,7 +9,8 @@ export type ProductColumn = {
   name: string;
   price: string; 
   brand: string;
-  category: string;
+  mainCategories: string;
+  subCategories: string;
   size: string;
   color: string;
   stock: number;
@@ -44,8 +45,12 @@ export const columns: ColumnDef<ProductColumn>[] = [
     },
   },
   {
-    accessorKey: "category",
-    header: "Category",
+    accessorKey: "mainCategories",
+    header: "Main Categories",
+  },
+  {
+    accessorKey: "subCategories",
+    header: "Subcategories",
   },
   {
     accessorKey: "brand",
@@ -67,7 +72,6 @@ export const columns: ColumnDef<ProductColumn>[] = [
         {row.original.color}
         <div
           className="h-6 w-6 rounded-full border"
-  
           style={{ backgroundColor: row.original.color.toLowerCase() }}
         />
       </div>
